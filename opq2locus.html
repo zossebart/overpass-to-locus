@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+	"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Overpass Query to Locus URL Converter</title>
+</head>
+<body style="font-family:sans-serif">
+
+<h1>Overpass Query Convert Form</h1>
+
+<form action="opq2locus.php" method="get" accept-charset="UTF-8">
+<p>
+<textarea name="input" rows="25" cols="80"></textarea><br/>
+
+<input type="submit" value="Convert"/>
+
+</p>
+
+<label> <input type="checkbox" name="locusaction" value="import"> import result to Locus DB </label><br>
+
+ <fieldset> 
+ 	<input type="radio" id="id" name="naming" value="id"><label for="id"> naming by id </label><br> 
+ 	<input type="radio" id="tags" name="naming" value="tags"> <label for="tags"> naming by tags </label><br>
+</fieldset>
+
+</form>
+
+</body>
+</html>
