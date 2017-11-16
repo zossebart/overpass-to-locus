@@ -478,7 +478,7 @@ function fixwaysegs($inputway)
 
 // converts relative date constructs from overpass wizard ({{date:xxx}})
 // to an ISO8601 date string (relative to server time) 
-function modify_url_dates(&$url)
+function modify_url_dates(&$url, $basetime)
 {
     $matches = array();
 
@@ -486,14 +486,17 @@ function modify_url_dates(&$url)
                     $url , $matches, 0 , 0);
 
     if($ret){
-        $date_utc = new DateTime(null, new DateTimeZone("UTC"));
+        if($basetime == "server")
+            $date_utc = new DateTime(null, new DateTimeZone("UTC"));
+        else
+            $date_utc = new DateTime($basetime, new DateTimeZone("UTC"));            
 
         for($matchindex=0; $matchindex < count($matches[0]); $matchindex++)
         {   
-                $date_mod = clone $date_utc;            
-                $date_mod->modify("-".$matches[1][$matchindex]);
+            $date_mod = clone $date_utc;            
+            $date_mod->modify("-".$matches[1][$matchindex]);
 
-                $url = str_replace($matches[0][$matchindex], $date_mod->format(DateTime::ISO8601), $url);
+            $url = str_replace($matches[0][$matchindex], $date_mod->format(DateTime::ISO8601), $url);
         }
     }
     else
@@ -503,13 +506,14 @@ function modify_url_dates(&$url)
 if(isset($_GET['mime']))$mime = $_GET['mime']; else $mime="";
 if(isset($_GET['url']))$url = $_GET['url']; else $url="";
 if(isset($_GET['naming']))$naming = $_GET['naming']; else $naming="tags";
+if(isset($_GET['timebase']))$timebase = $_GET['timebase']; else $timebase="server";
 //if(isset($_GET['data']))$data = $_GET['data']; else $data="";
 if(isset($_GET['query']))$query = $_GET['query']; else $query="";
 
 $query = urldecode($query);
 error_log($query);
 
-modify_url_dates($query);
+modify_url_dates($query, $timebase);
 error_log($query);
 
 

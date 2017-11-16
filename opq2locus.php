@@ -13,6 +13,7 @@ $locusurl = "locus-actions://http/".$_SERVER['SERVER_NAME'].dirname($_SERVER['SC
 $input = $_GET['input'];
 $locusaction = $_GET['locusaction'];
 $naming = $_GET['naming'];
+$tbase = $_GET['timebase'];
 
 //print html skel
 print("<html><body>");
@@ -34,6 +35,11 @@ if($locusaction == "import")
 
 if($naming != "")
 	$url = $url."&naming=".$naming;
+
+if($tbase != "server")
+	$url = $url."&timebase={timeUtc}";
+	
+	//print("&timebase={timeUtc}");
 
 print("locus-url:<br> $url<br><br>");
 
