@@ -22,11 +22,12 @@ print("opq2locus got input:<br>$input<br><br>");
 //construct the url
 $url = $input;
 
-$url = preg_replace($patterns, $replacements, $url);
+if(!strpos($url, "out:json"))
+	$url = "[out:json]".$url;
 
-$url = str_replace(' ', '%20', $url);
-$url = str_replace('`', '%20', $url);
-$url = str_replace('&', '%26', $url);
+$url = urlencode($url);
+
+$url = preg_replace($patterns, $replacements, $url);
 
 $url = $locusurl."?query=".$url;
 
