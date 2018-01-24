@@ -2,13 +2,11 @@
 
 $patterns = array();
 $patterns[0] = '(%7B%7Bbbox%7D%7D)';
-$patterns[1] = '/{{bbox}}/';
-$patterns[2] = '/{{center}}/';
+$patterns[1] = '(%7B%7Bcenter%7D%7D)';
 
 $replacements = array();
 $replacements[0] = '{screenLatBottom}%2C{screenLonLeft}%2C{screenLatTop}%2C{screenLonRight}';
-$replacements[1] = '{screenLatBottom}%2C{screenLonLeft}%2C{screenLatTop}%2C{screenLonRight}';
-$replacements[2] = '{mapLat}%2C{mapLon}';
+$replacements[1] = '{mapLat}%2C{mapLon}';
 
 $locusurl = "locus-actions://http/".$_SERVER['SERVER_NAME'].dirname($_SERVER['SCRIPT_NAME'])."/op2gpx-locus.php";
 
