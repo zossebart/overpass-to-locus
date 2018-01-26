@@ -52,6 +52,7 @@ class node {
     public $comment = "";    
     public $lat;
     public $lon;
+    public $type = "";
 }
 
 class wayseg {
@@ -215,6 +216,8 @@ function getnodes(&$jsoninput, $naming, &$nodesoutput)
             $curnode->lat = $ele->lat;
             $curnode->lon = $ele->lon;
 
+            $curnode->type = "wpt"; //add it as a waypoint first
+
             //add it to the array
             $nodesoutput[] = $curnode;
             //remove it from response afterwards
@@ -266,6 +269,7 @@ function getways(&$jsoninput, $naming, &$nodesinput, &$waysoutput)
                     if($temp->id==$waynode)
                     {
                         //error_log("found way-node ".$temp->lon.", ".$temp->lat);                        
+                        $temp->type = "trkpt";
                         $curway->wayseg[0]->nodes[] = $temp;      
                         $consumednodes[] = $allnodeskey; //save the array key of the used node, to remove later  
                         break;                               
