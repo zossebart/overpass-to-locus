@@ -3,6 +3,9 @@
 $scriptver = "vX.x.X";
 $info = "converted by op2gpx ".$scriptver;
 
+$trackspeed = 5; //in Km/h
+$secperm = 3.6/$trackspeed;
+
 $nodekeynames = array(
     "name",
     "power",
@@ -68,6 +71,23 @@ class way {
     public $wayseg = array();
 }
 
+function haversineGreatCircleDistance($node1, $node2)
+{
+    $earthRadius = 6371000;
+    // convert from degrees to radians
+    $latFrom = deg2rad($node1->lat);
+    $lonFrom = deg2rad($node1->lon);
+    $latTo = deg2rad($node2->lat);
+    $lonTo = deg2rad($node2->lon);
+
+    $latDelta = $latTo - $latFrom;
+    $lonDelta = $lonTo - $lonFrom;
+
+    $angle = 2 * asin(sqrt(pow(sin($latDelta / 2), 2) +
+        cos($latFrom) * cos($latTo) * pow(sin($lonDelta / 2), 2)));
+    return $angle * $earthRadius;
+}
+
 function outputwpts($nodes)
 {
     foreach($nodes as $node)        
@@ -85,10 +105,14 @@ function outputwpts($nodes)
     }
 }
 
-function outputtracks($ways)
+function outputtracks($ways, $withtime)
 {
     //error_log("output a track");
     foreach ($ways as $way) {
+
+        if($withtime != "")
+            $time_utc = new DateTime(null, new DateTimeZone("UTC"));
+
         //new track
         print("<trk>
             \t<name>$way->name</name>
@@ -102,11 +126,26 @@ function outputtracks($ways)
         {
             print("\t<trkseg>\n");
 
+            $nodecount = 0;
             //output the nodes of the wayseg
             foreach($segment->nodes as $node)
             {
                 //error_log("output a way-node");
-                print("\t\t<trkpt lat=\"$node->lat\" lon=\"$node->lon\"><ele>0.00</ele></trkpt>\n");
+                print("\t\t<trkpt lat=\"$node->lat\" lon=\"$node->lon\"><ele>0.00</ele>");
+
+                if($withtime != ""){
+                    $secperm = $GLOBALS["secperm"];
+                    if($nodecount++ > 0){
+                        $dist = haversineGreatCircleDistance($oldnode, $node);
+                        $timediff = floor($dist * $secperm);
+                        $time_utc->add(new DateInterval("PT".$timediff."S"));                    
+                    }
+
+                    print("<time>".$time_utc->format(DateTime::ISO8601)."</time>");                    
+                    $oldnode = $node;                    
+                }
+
+                print("</trkpt>\n");
             }
             print("\t</trkseg>\n");
         }    
@@ -149,7 +188,7 @@ function outputgpx ($nodes, $ways, $url, $mime)
         </metadata>\n");
 
     outputwpts($nodes);
-    outputtracks($ways);
+    outputtracks($ways, 1);
 
     //end of gpx
     print("</gpx>\n");
