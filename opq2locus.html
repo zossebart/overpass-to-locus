@@ -20,9 +20,14 @@
 <label> <input type="checkbox" name="locusaction" value="import"> import result to Locus DB </label>
 <label> <input type="checkbox" name="timebase" value="server"> use server time instead of Locus time for time-relative queries </label><br>
 
- <fieldset> 
+<fieldset> 
  	<input type="radio" id="id" name="naming" value="id"><label for="id"> naming by id </label><br> 
  	<input type="radio" id="tags" name="naming" value="tags"> <label for="tags"> naming by tags </label><br>
+</fieldset>
+
+<fieldset> 
+ 	<input type="radio" id="1" name="shpmode" value="1"><label for="1"> shaping wpts at start of rel ways </label><br> 
+ 	<input type="radio" id="2" name="shpmode" value="2"> <label for="2"> shaping wpts at midpoint of rel ways </label><br>
 </fieldset>
 
 </form>

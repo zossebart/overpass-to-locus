@@ -14,6 +14,7 @@ $input = $_GET['input'];
 $locusaction = $_GET['locusaction'];
 $naming = $_GET['naming'];
 $tbase = $_GET['timebase'];
+$shpmode = $_GET['shpmode'];
 
 //print html skel
 print("<html><body>");
@@ -40,6 +41,9 @@ if($naming != "")
 if($tbase != "server")
 	$url = $url."&timebase={timeUtc}";
 	
+if($shpmode != "")
+	$url = $url."&shpmode=".$shpmode;
+
 	//print("&timebase={timeUtc}");
 
 print("locus-url:<br> $url<br><br>");

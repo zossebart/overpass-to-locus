@@ -6,6 +6,7 @@ if(isset($_GET['query']))$query = $_GET['query']; else $query="";
 if(isset($_GET['act']))$action = $_GET['act']; else $action="";
 if(isset($_GET['naming']))$naming = $_GET['naming']; else $naming="";
 if(isset($_GET['timebase']))$timebase = $_GET['timebase']; else $timebase="";
+if(isset($_GET['shpmode']))$shpmode = $_GET['shpmode']; else $shpmode="";
 
 $redirecturl = "http://".$_SERVER['SERVER_NAME'].dirname($_SERVER['SCRIPT_NAME'])."/op2gpx.php";
 
@@ -27,6 +28,9 @@ if($naming!="")
 
 if($timebase!="")
 	$redirecturl = $redirecturl."&timebase=".$timebase;	
+
+if($shpmode!="")
+	$redirecturl = $redirecturl."&shpmode=".$shpmode;	
 
 $redirecturl .= "]]>";
 
