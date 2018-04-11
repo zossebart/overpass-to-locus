@@ -14,7 +14,9 @@ $input = $_GET['input'];
 $locusaction = $_GET['locusaction'];
 $naming = $_GET['naming'];
 $tbase = $_GET['timebase'];
-$shpmode = $_GET['shpmode'];
+$shpmode1 = $_GET['shpmode1'];
+$shpmode2 = $_GET['shpmode2'];
+$shpmode3 = $_GET['shpmode3'];
 
 //print html skel
 print("<html><body>");
@@ -41,7 +43,20 @@ if($naming != "")
 if($tbase != "server")
 	$url = $url."&timebase={timeUtc}";
 	
-if($shpmode != "")
+$shpmode = 0;
+
+if($shpmode1 != "")
+	$shpmode |= $shpmode1;
+
+if($shpmode2 != "")
+	$shpmode |= $shpmode2;
+
+if($shpmode3 != "")
+	$shpmode |= $shpmode3;
+	// | $shpmode2 | $shpmode3;
+
+
+if($shpmode != 0)
 	$url = $url."&shpmode=".$shpmode;
 
 	//print("&timebase={timeUtc}");

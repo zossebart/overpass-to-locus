@@ -458,11 +458,14 @@ function getrels(&$jsoninput, $naming, $shpmode, &$nodesinput, &$waysoutput)
             }
             //try to fix segment directions
             $curway = fixwaysegs($curway);
-            if($shpmode > 0)
-                $curway = insertwaysegstartpoints($curway);                
-            if($shpmode > 1)            
-                $curway = insertwaysegmidpoints($curway);
 
+            //insert locus shaping points
+            if($shpmode & 1)
+                $curway = insertwaysegstartpoints($curway);                
+            if($shpmode & 2)
+                $curway = insertwaysegmidpoints($curway);
+            if($shpmode & 4)   
+                $curway = insertwaysegsemistartpoints($curway);
 
             //add to ways array
             $waysoutput[] = $curway;
@@ -624,6 +627,30 @@ function insertwaysegmidpoints($inputway)
             }
             $oldnode = $node;
         }
+    }
+    return $outputway;
+}
+
+function insertwaysegsemistartpoints($inputway)
+{
+    $outputway = $inputway;
+
+    foreach($inputway->wayseg as $segment)
+    {
+        $partlen = haversineGreatCircleDistance($segment->nodes[0], $segment->nodes[1]);
+
+        if($partlen > 10)
+            $fraction = (10 / $partlen);
+        else
+            $fraction = 0.95;
+
+        //error_log("dnodes ".$partlen." frac ".$fraction);
+
+        $newnode = interPoint($segment->nodes[0], $segment->nodes[1], $partlen, $fraction);
+        $newnode->type = "wpt";
+        $newnode->name = "shapingpoint";                
+
+        array_splice( $segment->nodes, 1, 0, array($newnode));
     }
     return $outputway;
 }
