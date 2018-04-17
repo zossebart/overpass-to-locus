@@ -120,27 +120,31 @@ function interPoint($node1, $node2, $dist, $fraction)
 
 function outputwpts($nodes)
 {
+    $returnstr = "";
+
     foreach($nodes as $node)        
     {
         //error_log("output a node");
-        print("<wpt lat=\"$node->lat\" lon=\"$node->lon\">
+        $returnstr.="<wpt lat=\"$node->lat\" lon=\"$node->lon\">
             \t<name>$node->name</name>
             \t<desc>$node->desc</desc>
             \t<ele>0.00</ele>
             \t<link href=\"http://www.openstreetmap.org/node/$node->id\"><text>http://www.openstreetmap.org/node/$node->id</text></link>
-            \t<cmt>$node->comment</cmt>");
+            \t<cmt>$node->comment</cmt>";
 
         if($node->time != "")
-            print("<time>".$node->time."</time>");    
+            $returnstr.="<time>".$node->time."</time>";    
 
-        print("</wpt>\n");
+        $returnstr.="</wpt>\n";
         
         //print("<cmt>http://www.openstreetmap.org/node/$node->id</cmt>");
     }
+    return $returnstr;
 }
 
 function outputtracks($ways, $withtime, &$waypts)
 {
+    $returnstr = "";
     //error_log("output a track");
     foreach ($ways as $way) {
 
@@ -148,17 +152,17 @@ function outputtracks($ways, $withtime, &$waypts)
             $time_utc = new DateTime(null, new DateTimeZone("UTC"));
 
         //new track
-        print("<trk>
+        $returnstr.="<trk>
             \t<name>$way->name</name>
             \t<desc>$way->desc</desc>
-            \t<link href=\"http://www.openstreetmap.org/$way->type/$way->id\"><text>http://www.openstreetmap.org/$way->type/$way->id</text></link>\n");
+            \t<link href=\"http://www.openstreetmap.org/$way->type/$way->id\"><text>http://www.openstreetmap.org/$way->type/$way->id</text></link>\n";
  
         if($way->comment != "")
-            print("<cmt>$way->comment</cmt>");
+            $returnstr.="<cmt>$way->comment</cmt>";
 
         foreach($way->wayseg as $segment)
         {
-            print("\t<trkseg>\n");
+            $returnstr.="\t<trkseg>\n";
 
             $nodecount = 0;
             //output the nodes of the wayseg
@@ -167,7 +171,7 @@ function outputtracks($ways, $withtime, &$waypts)
                 if(is_object($node))
                 {                
                 //error_log("output a way-node");
-                print("\t\t<trkpt lat=\"$node->lat\" lon=\"$node->lon\"><ele>0.00</ele>");
+                $returnstr.="\t\t<trkpt lat=\"$node->lat\" lon=\"$node->lon\"><ele>0.00</ele>";
 
                 if($withtime != ""){
                     $secperm = $GLOBALS["secperm"];
@@ -177,7 +181,7 @@ function outputtracks($ways, $withtime, &$waypts)
                         $time_utc->add(new DateInterval("PT".$timediff."S"));                    
                     }
 
-                    print("<time>".$time_utc->format(DateTime::ISO8601)."</time>");     
+                    $returnstr.="<time>".$time_utc->format(DateTime::ISO8601)."</time>";     
 
                     if($node->type == "wpt"){
                         $wpt = clone($node);
@@ -188,22 +192,22 @@ function outputtracks($ways, $withtime, &$waypts)
                     $oldnode = $node;                    
                 }
 
-                print("</trkpt>\n");
+                $returnstr.="</trkpt>\n";
                 }
                 else
                     error_log("not an object! ".$nodecount);
             }
-            print("\t</trkseg>\n");
+            $returnstr.="\t</trkseg>\n";
         }    
         //end of track
-        print("</trk>\n");
+        $returnstr.="</trk>\n";
     }
+
+    return $returnstr;
  }
 
-function outputgpx ($nodes, $ways, $url, $mime)
+function outputhttpheader($mime)
 {
-    error_log("++outputgpx");
-
     if ($mime)
     {
         header('Content-Type: '.$mime);
@@ -211,15 +215,17 @@ function outputgpx ($nodes, $ways, $url, $mime)
     else
     {
         header('Content-Type: application/force-download');
-        header('Content-Disposition: attachment; filename="op2gpx.gpx"');
-        header('Content-Transfer-Encoding: binary');
-        header('Cache-Control: private');
-        header('Pragma: private');
     }
+    
+    header('Content-Disposition: attachment; filename="op2gpx.gpx"');
+    header('Content-Transfer-Encoding: binary');
+    header('Cache-Control: private');
+    header('Pragma: private');
+}
 
-    //$url = urldecode($url);
-
-    print("<?xml version=\"1.0\" encoding=\"utf-8\" standalone=\"yes\"?>
+function outputgpx ($nodes, $ways, $url, $mime)
+{
+    $strgpxheader = "<?xml version=\"1.0\" encoding=\"utf-8\" standalone=\"yes\"?>
         <gpx version=\"1.1\" creator=\"op2gpx\"
         xmlns=\"http://www.topografix.com/GPX/1/1\"
         xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"
@@ -231,14 +237,25 @@ function outputgpx ($nodes, $ways, $url, $mime)
         xmlns:locus=\"http://www.locusmap.eu\">
         <metadata>
         \t<desc>$url</desc>
-        </metadata>\n");
+        </metadata>\n";
+    $strgpxfooter = "</gpx>\n";
 
-    outputtracks($ways, 1, $waypts);
-    outputwpts($waypts);
-    outputwpts($nodes);
+    error_log("++outputgpx");
+
+    outputhttpheader($mime);
+
+    //$url = urldecode($url);
+
+    print($strgpxheader);
+
+    $strdata = outputtracks($ways, 1, $waypts);
+    $strdata .= outputwpts($waypts);
+    $strdata .= outputwpts($nodes);
+    print($strdata);
+
 
     //end of gpx
-    print("</gpx>\n");
+    print($strgpxfooter);
 
     error_log("--outputgpx");
 }
