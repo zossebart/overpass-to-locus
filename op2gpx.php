@@ -78,6 +78,20 @@ class way {
     public $length = 0;
 }
 
+//relations
+class rel {
+    public $id;
+    public $type;
+    public $comment = "";
+    public $name = "";
+    public $desc = "";
+    public $way;
+    public $pois = array();
+    public $vias = array();
+    public $shps = array();
+    public $cusage = 0;
+}
+
 function haversineGreatCircleDistance($node1, $node2)
 {
     $earthRadius = 6371000;
@@ -118,68 +132,65 @@ function interPoint($node1, $node2, $dist, $fraction)
     $outnode->lat = rad2deg(atan2($z, sqrt($x * $x + $y * $y)));
     $outnode->lon = rad2deg(atan2($y, $x));
 
-    error_log("interpoint ".$outnode->lat." ".$outnode->lon);
+    //error_log("interpoint ".$outnode->lat." ".$outnode->lon);
 
     return $outnode;
 }
 
-function outputwpts($nodes)
+function outputwpt($node, $ignoreusage)
 {
     $returnstr = "";
 
-    foreach($nodes as $node)        
-    {
-        if($node->cusage > 0)
-            continue;
+    if(!$ignoreusage && $node->cusage > 0)
+        return;
 
-        //error_log("output a node");
-        $returnstr.="<wpt lat=\"$node->lat\" lon=\"$node->lon\">
-            \t<name>$node->name</name>
-            \t<desc>$node->desc</desc>
-            \t<ele>0.00</ele>
-            \t<link href=\"http://www.openstreetmap.org/node/$node->id\"><text>http://www.openstreetmap.org/node/$node->id</text></link>
-            \t<cmt>$node->comment</cmt>";
+    //error_log("output a node");
+    $returnstr.="<wpt lat=\"$node->lat\" lon=\"$node->lon\">
+        \t<name>$node->name</name>
+        \t<desc>$node->desc</desc>
+        \t<ele>0.00</ele>
+        \t<link href=\"http://www.openstreetmap.org/node/$node->id\"><text>http://www.openstreetmap.org/node/$node->id</text></link>
+        \t<cmt>$node->comment</cmt>";
 
-        if($node->time != "")
-            $returnstr.="<time>".$node->time."</time>";    
+    if($node->time != "")
+        $returnstr.="<time>".$node->time."</time>";    
 
-        $returnstr.="</wpt>\n";
+    $returnstr.="</wpt>\n";
         
-        //print("<cmt>http://www.openstreetmap.org/node/$node->id</cmt>");
-    }
+    //print("<cmt>http://www.openstreetmap.org/node/$node->id</cmt>");
     return $returnstr;
 }
 
-function outputtracks($ways, $withtime, &$waypts)
+function outputtrack($way, $withtime)
 {
     $returnstr = "";
+    $waypts = array();
     //error_log("output a track");
-    foreach ($ways as $way) {
-        if($way->cusage > 0)
-            continue;
+    if($way->cusage > 0)
+        return;
 
-        if($withtime != "")
-            $time_utc = new DateTime(null, new DateTimeZone("UTC"));
+    if($withtime != "")
+        $time_utc = new DateTime(null, new DateTimeZone("UTC"));
 
-        //new track
-        $returnstr.="<trk>
-            \t<name>$way->name</name>
-            \t<desc>$way->desc</desc>
-            \t<link href=\"http://www.openstreetmap.org/$way->type/$way->id\"><text>http://www.openstreetmap.org/$way->type/$way->id</text></link>\n";
+    //new track
+    $returnstr.="<trk>
+        \t<name>$way->name</name>
+        \t<desc>$way->desc</desc>
+        \t<link href=\"http://www.openstreetmap.org/$way->type/$way->id\"><text>http://www.openstreetmap.org/$way->type/$way->id</text></link>\n";
  
-        if($way->comment != "")
-            $returnstr.="<cmt>$way->comment</cmt>";
+    if($way->comment != "")
+        $returnstr.="<cmt>$way->comment</cmt>";
 
-        foreach($way->wayseg as $segment)
+    foreach($way->wayseg as $segment)
+    {
+        $returnstr.="\t<trkseg>\n";
+
+        $nodecount = 0;
+        //output the nodes of the wayseg
+        foreach($segment->nodes as $node)
         {
-            $returnstr.="\t<trkseg>\n";
-
-            $nodecount = 0;
-            //output the nodes of the wayseg
-            foreach($segment->nodes as $node)
-            {
-                if(is_object($node))
-                {                
+            if(is_object($node))
+            {                
                 //error_log("output a way-node");
                 $returnstr.="\t\t<trkpt lat=\"$node->lat\" lon=\"$node->lon\"><ele>0.00</ele>";
 
@@ -203,18 +214,33 @@ function outputtracks($ways, $withtime, &$waypts)
                 }
 
                 $returnstr.="</trkpt>\n";
-                }
-                else
-                    error_log("not an object! ".$nodecount);
             }
-            $returnstr.="\t</trkseg>\n";
-        }    
-        //end of track
-        $returnstr.="</trk>\n";
-    }
+            else
+                error_log("not an object! ".$nodecount);
+        }
+        $returnstr.="\t</trkseg>\n";
+    }    
+    //end of track
+    $returnstr.="</trk>\n";
+ 
+    // output waypoints
+    foreach($waypts as $waypt)
+        $returnstr .=  outputwpt($waypt, 0);
 
     return $returnstr;
  }
+
+function outputrel($rel, $withtime)
+{
+    $returnstr = "";
+    $returnstr .= outputtrack($rel->way, $withtime);
+
+    foreach($rel->pois as $poi){
+        $returnstr .= outputwpt($poi, 0);
+    }
+
+    return $returnstr;
+}
 
 function outputhttpheader($mime)
 {
@@ -233,7 +259,7 @@ function outputhttpheader($mime)
     header('Pragma: private');
 }
 
-function outputgpx ($nodes, $ways, $url, $mime)
+function outputgpx ($nodes, $ways, $rels, $url, $mime)
 {
     $strgpxheader = "<?xml version=\"1.0\" encoding=\"utf-8\" standalone=\"yes\"?>
         <gpx version=\"1.1\" creator=\"op2gpx\"
@@ -257,12 +283,18 @@ function outputgpx ($nodes, $ways, $url, $mime)
     //$url = urldecode($url);
 
     print($strgpxheader);
+    $strdata = "";
 
-    $strdata = outputtracks($ways, 1, $waypts);
-    $strdata .= outputwpts($waypts);
-    $strdata .= outputwpts($nodes);
+    foreach($rels as $rel)
+        $strdata .= outputrel($rel, 1);    
+
+    foreach($ways as $way)
+        $strdata .= outputtrack($way, 1);
+
+    foreach($nodes as $node)
+        $strdata .= outputwpt($node, 0);
+
     print($strdata);
-
 
     //end of gpx
     print($strgpxfooter);
@@ -347,16 +379,15 @@ function getnodes(&$jsoninput, $naming, &$nodesoutput)
 
 // scans $jsoninput for ways and adds them to $waysoutput
 // also removes them from $jsoninput for speedup of later scans
-// also removes way-nodes from $nodesinput
+// also increments counter of "consumed" way-nodes in $nodesinput
 function getways(&$jsoninput, $naming, &$nodesinput, &$waysoutput)
 {
     $consumedresponseways = array();
-    $consumednodes = array();
 
     foreach($jsoninput->elements as $reskey => $ele)
     {   
         //var_dump($ele);
-    
+   
         if ($ele->type=="way")
         {
             $curway = new way;
@@ -412,29 +443,28 @@ function getways(&$jsoninput, $naming, &$nodesinput, &$waysoutput)
     }
 }
 
-// scans $jsoninput for relations and adds them as ways to $waysoutput
-// also removes relation-nodes from $nodesinput
-// also removes relation-ways from $waysoutput 
-function getrels(&$jsoninput, $naming, $shpmode, &$nodesinput, &$waysoutput)
+// scans $jsoninput for relations and adds them to $relsoutput
+// also increments counter of "consumed" rel-nodes in $nodesinput
+// also increments counter of "consumed" way in $waysinput 
+function getrels(&$jsoninput, $naming, $shpmode, &$nodesinput, &$waysinput, &$relsoutput)
 {
-    $consumednodes = array();
-    $consumedways = array();
-
     foreach($jsoninput->elements as $ele)
     {   
         //var_dump($ele);
     
         if ($ele->type=="relation")
         {
-            $curway = new way;
-            $curway->type = "relation";
-            //error_log("->relation found");
+            $currel = new rel;
+            $currel->way = new way;
+            $currel->pois = array();
 
-            get_name_desc($ele, $ele->type, $naming, $curway);
+            $currel->way->type = "relation";
 
-            error_log("relation name is ".$curway->name);
+            //save the name in the way for now (rel->name unused)
+            get_name_desc($ele, $ele->type, $naming, $currel->way);
+            error_log("relation name is ".$currel->way->name);
 
-            $curway->id = $ele->id;
+            $currel->id = $ele->id;
 
             //now add all the nodes and ways contained in the relation
             if(property_exists($ele, 'members'))
@@ -451,7 +481,7 @@ function getrels(&$jsoninput, $naming, $shpmode, &$nodesinput, &$waysoutput)
                         if($temp->id==$relmember->ref)
                         {//found a relation node
                             //error_log("found relation-node ".$temp->lon.", ".$temp->lat);                        
-                            //$allnodes[] = $temp;     //don't include nodes for now
+                            $currel->pois[] = $temp;
 
                             // increment usage counter
                             $nodesinput[$elemkey]->cusage++;
@@ -463,7 +493,7 @@ function getrels(&$jsoninput, $naming, $shpmode, &$nodesinput, &$waysoutput)
                 if($relmember->type=="way")
                 {
                     //search through $allways for the relation member way
-                    foreach($waysoutput as $elemkey => $temp)
+                    foreach($waysinput as $elemkey => $temp)
                     {
                         //error_log("check rel way ref ".$relmember->ref." against ".$temp->id." (elem key is ".$elemkey);
 
@@ -472,27 +502,27 @@ function getrels(&$jsoninput, $naming, $shpmode, &$nodesinput, &$waysoutput)
                             //add it to the current way's waysegemnts
                             //error_log("found relation-way");       
 
-                            $curway->wayseg[] = clone($temp->wayseg[0]);
+                            $currel->way->wayseg[] = clone($temp->wayseg[0]);
                             // increment usage count
-                            $waysoutput[$elemkey]->cusage++;
+                            $waysinput[$elemkey]->cusage++;
                             break;                               
                         }      
                     }
                 }                
             }
             //try to fix segment directions
-            $curway = fixwaysegs($curway);
+            $currel->way = fixwaysegs($currel->way);
 
             //insert locus shaping points
             if($shpmode & 1)
-                $curway = insertwaysegstartpoints($curway);                
+                $currel->way = insertwaysegstartpoints($currel->way);                
             if($shpmode & 2)
-                $curway = insertwaysegmidpoints($curway);
+                $currel->way = insertwaysegmidpoints($currel->way);
             if($shpmode & 4)   
-                $curway = insertwaysegsemistartpoints($curway);
+                $currel->way = insertwaysegsemistartpoints($currel->way);
 
             //add to ways array
-            $waysoutput[] = $curway;
+            $relsoutput[] = $currel;
         }
     }
 }
@@ -735,6 +765,7 @@ else
     {
         $allnodes = array();
         $allways = array();
+        $allrels = array();
 
         //1. get all nodes of the response    
         getnodes($json, $naming, $allnodes);
@@ -744,10 +775,10 @@ else
 
         //3. get all relations of the response 
         //(consumes nodes from $allnodes and ways from $allways)    
-        getrels($json, $naming, $shpmode, $allnodes, $allways);
+        getrels($json, $naming, $shpmode, $allnodes, $allways, $allrels);
 
         //now construct the gpx output and return it
-        outputgpx ($allnodes, $allways, $url, $mime);
+        outputgpx ($allnodes, $allways, $allrels, $url, $mime);
     }
 }
 
