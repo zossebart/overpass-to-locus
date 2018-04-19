@@ -48,6 +48,7 @@ $nodekeynames = array(
 
 //error_log("+++++++++++ op2gpx.php +++++++++++");
 
+//nodes
 class node {
     public $id;
     public $name = "";
@@ -57,6 +58,7 @@ class node {
     public $lon;
     public $type = "";
     public $time = "";
+    public $cusage = 0;
 }
 
 class wayseg {
@@ -64,6 +66,7 @@ class wayseg {
     public $length = 0;
 }
 
+//ways
 class way {
     public $id;
     public $type;
@@ -71,6 +74,8 @@ class way {
     public $name = "";
     public $desc = "";
     public $wayseg = array();
+    public $cusage = 0;
+    public $length = 0;
 }
 
 function haversineGreatCircleDistance($node1, $node2)
@@ -124,6 +129,9 @@ function outputwpts($nodes)
 
     foreach($nodes as $node)        
     {
+        if($node->cusage > 0)
+            continue;
+
         //error_log("output a node");
         $returnstr.="<wpt lat=\"$node->lat\" lon=\"$node->lon\">
             \t<name>$node->name</name>
@@ -147,6 +155,8 @@ function outputtracks($ways, $withtime, &$waypts)
     $returnstr = "";
     //error_log("output a track");
     foreach ($ways as $way) {
+        if($way->cusage > 0)
+            continue;
 
         if($withtime != "")
             $time_utc = new DateTime(null, new DateTimeZone("UTC"));
@@ -381,7 +391,8 @@ function getways(&$jsoninput, $naming, &$nodesinput, &$waysoutput)
                             $curway->wayseg[0]->length += haversineGreatCircleDistance(lastnode($curway->wayseg[0]), $temp);
 
                         $curway->wayseg[0]->nodes[] = $temp;      
-                        $consumednodes[] = $allnodeskey; //save the array key of the used node, to remove later  
+                        // increment usage count
+                        $nodesinput[$allnodeskey]->cusage++;
                         break;                               
                     }
                 }
@@ -392,13 +403,7 @@ function getways(&$jsoninput, $naming, &$nodesinput, &$waysoutput)
             $consumedresponseways [] = $reskey;            
         }
     }
-    //remove nodes consumed by ways from $nodesinput
-    //(they should not be returned as separate POIs)
-    foreach($consumednodes as $consumedkey)
-    {
-        //error_log("remove element ".$consumedkey);
-        unset($nodesinput[$consumedkey]);
-    }
+
     //remove all the ways from response (to speed up relation scanning)
     foreach($consumedresponseways as $consumedkey)
     {
@@ -447,7 +452,9 @@ function getrels(&$jsoninput, $naming, $shpmode, &$nodesinput, &$waysoutput)
                         {//found a relation node
                             //error_log("found relation-node ".$temp->lon.", ".$temp->lat);                        
                             //$allnodes[] = $temp;     //don't include nodes for now
-                            $consumednodes[] = $elemkey; //save the array key of the used node, to remove later  
+
+                            // increment usage counter
+                            $nodesinput[$elemkey]->cusage++;
                             break;                               
                         }      
                     }
@@ -466,8 +473,8 @@ function getrels(&$jsoninput, $naming, $shpmode, &$nodesinput, &$waysoutput)
                             //error_log("found relation-way");       
 
                             $curway->wayseg[] = clone($temp->wayseg[0]);
-
-                            $consumedways[] = $elemkey; //save the array key of the used way, to remove later  
+                            // increment usage count
+                            $waysoutput[$elemkey]->cusage++;
                             break;                               
                         }      
                     }
@@ -488,22 +495,6 @@ function getrels(&$jsoninput, $naming, $shpmode, &$nodesinput, &$waysoutput)
             $waysoutput[] = $curway;
         }
     }
-
-    //remove nodes consumed by relations from $nodesinput
-    //(they should not be returned as separate POIs)
-    foreach($consumednodes as $consumedkey)
-    {
-        //error_log("remove element ".$consumedkey);
-        unset($nodesinput[$consumedkey]);
-    }
-
-    //remove ways consumed by relations
-    //(they should not be returned as separate ways)
-    foreach($consumedways as $consumedkey)
-    {
-        //error_log("remove element ".$consumedkey);
-        unset($waysoutput[$consumedkey]);
-    }    
 }
 
 function firstnode($waysegment)
