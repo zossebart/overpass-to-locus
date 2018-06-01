@@ -148,9 +148,12 @@ function outputwpt($node, $ignoreusage)
     $returnstr.="<wpt lat=\"$node->lat\" lon=\"$node->lon\">
         \t<name>$node->name</name>
         \t<desc>$node->desc</desc>
-        \t<ele>0.00</ele>
-        \t<link href=\"http://www.openstreetmap.org/node/$node->id\"><text>http://www.openstreetmap.org/node/$node->id</text></link>
-        \t<cmt>$node->comment</cmt>";
+        \t<ele>0.00</ele>";
+
+    if($node->id != "")
+        $returnstr.="\t<link href=\"http://www.openstreetmap.org/node/$node->id\"><text>http://www.openstreetmap.org/node/$node->id</text></link>";
+
+    $returnstr.="\t<cmt>$node->comment</cmt>";
 
     if($node->time != "")
         $returnstr.="<time>".$node->time."</time>";    
