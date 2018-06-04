@@ -25,8 +25,12 @@ print("<?xml version=\"1.0\" encoding=\"utf-8\"?>
 	<download>
 	        <source>
 	        $redirecturl
-	        </source>
-	        <dest><![CDATA[/mapItems/op2gpx.gpx]]></dest>");
+	        </source>");
+
+if(isset($_GET['zip']) && $_GET['zip'] == "yes")	        
+	print("<dest><![CDATA[/mapItems/op2gpx.zip]]></dest>");
+else
+	print("<dest><![CDATA[/mapItems/op2gpx.gpx]]></dest>");
 
 if(isset($_GET['act']) && $_GET['act'] == "import")
 	print("<after>importData</after>");	

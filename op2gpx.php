@@ -262,7 +262,7 @@ function outputhttpheader($mime)
     header('Pragma: private');
 }
 
-function outputgpx ($nodes, $ways, $rels, $url, $mime)
+function outputgpx ($nodes, $ways, $rels, $url, $mime, $zipit)
 {
     $strgpxheader = "<?xml version=\"1.0\" encoding=\"utf-8\" standalone=\"yes\"?>
         <gpx version=\"1.1\" creator=\"op2gpx\"
@@ -281,26 +281,52 @@ function outputgpx ($nodes, $ways, $rels, $url, $mime)
 
     error_log("++outputgpx");
 
-    outputhttpheader($mime);
+    if($zipit){
+        $zip = new ZipArchive;
+        $zip->open('op2gpx.zip', ZipArchive::CREATE|ZipArchive::OVERWRITE);
+    }
 
-    //$url = urldecode($url);
-
-    print($strgpxheader);
     $strdata = "";
 
-    foreach($rels as $rel)
+    foreach($rels as $rel){
         $strdata .= outputrel($rel, 1);    
+        if($zipit && $strdata != ""){
+            $zip->addFromString('op2gpx-rel'.$rel->id.'.gpx', $strgpxheader.$strdata.$strgpxfooter);
+            $strdata = "";
+        }                
+    }
 
+    if($zipit)
+        $strdata = "";
     foreach($ways as $way)
         $strdata .= outputtrack($way, 1);
+    if($zipit && $strdata != "")
+        $zip->addFromString('op2gpx-ways.gpx', $strgpxheader.$strdata.$strgpxfooter);
 
+    if($zipit)
+        $strdata = "";
     foreach($nodes as $node)
         $strdata .= outputwpt($node, 0);
+    if($zipit && $strdata != "")
+        $zip->addFromString('op2gpx-nodes.gpx', $strgpxheader.$strdata.$strgpxfooter);
 
-    print($strdata);
 
-    //end of gpx
-    print($strgpxfooter);
+
+    if($zipit){
+        $zip->close();
+
+        header('Content-Type: application/zip');
+        header('Content-disposition: attachment; filename=op2gpx.zip');
+        header('Content-Length: ' . filesize('op2gpx.zip'));
+
+        readfile('op2gpx.zip');
+    }
+    else{
+        outputhttpheader($mime);        
+        print($strgpxheader);        
+        print($strdata);    
+        print($strgpxfooter);
+    }
 
     error_log("--outputgpx");
 }
@@ -730,6 +756,7 @@ if(isset($_GET['timebase']))$timebase = $_GET['timebase']; else $timebase="serve
 //if(isset($_GET['data']))$data = $_GET['data']; else $data="";
 if(isset($_GET['query']))$query = $_GET['query']; else $query="";
 if(isset($_GET['shpmode']))$shpmode = $_GET['shpmode']; else $shpmode="";
+if(isset($_GET['zip']))$zipit = $_GET['zip']; else $zipit="";
 
 $query = urldecode($query);
 error_log($query);
@@ -781,7 +808,7 @@ else
         getrels($json, $naming, $shpmode, $allnodes, $allways, $allrels);
 
         //now construct the gpx output and return it
-        outputgpx ($allnodes, $allways, $allrels, $url, $mime);
+        outputgpx ($allnodes, $allways, $allrels, $url, $mime, $zipit);
     }
 }
 

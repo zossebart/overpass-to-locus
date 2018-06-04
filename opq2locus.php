@@ -17,6 +17,7 @@ $tbase = $_GET['timebase'];
 $shpmode1 = $_GET['shpmode1'];
 $shpmode2 = $_GET['shpmode2'];
 $shpmode3 = $_GET['shpmode3'];
+$zip = $_GET['zip'];
 
 //print html skel
 print("<html><body>");
@@ -58,6 +59,9 @@ if($shpmode3 != "")
 
 if($shpmode != 0)
 	$url = $url."&shpmode=".$shpmode;
+
+if($zip == "yes")
+	$url = $url."&zip=yes";
 
 	//print("&timebase={timeUtc}");
 
