@@ -494,6 +494,7 @@ function getrels(&$jsoninput, $naming, $shpmode, &$nodesinput, &$waysinput, &$re
             error_log("relation name is ".$currel->way->name);
 
             $currel->id = $ele->id;
+            $currel->way->id = $ele->id;
 
             //now add all the nodes and ways contained in the relation
             if(property_exists($ele, 'members'))
