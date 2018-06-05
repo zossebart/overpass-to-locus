@@ -228,7 +228,7 @@ function outputtrack($way, $withtime)
  
     // output waypoints
     foreach($waypts as $waypt)
-        $returnstr .=  outputwpt($waypt, 0);
+        $returnstr .=  outputwpt($waypt, 1);
 
     return $returnstr;
  }
@@ -450,7 +450,7 @@ function getways(&$jsoninput, $naming, &$nodesinput, &$waysoutput)
                         if($nodecount++ > 0)
                             $curway->wayseg[0]->length += haversineGreatCircleDistance(lastnode($curway->wayseg[0]), $temp);
 
-                        $curway->wayseg[0]->nodes[] = $temp;      
+                        $curway->wayseg[0]->nodes[] = clone($temp);      
                         // increment usage count
                         $nodesinput[$allnodeskey]->cusage++;
                         break;                               
@@ -654,7 +654,7 @@ function insertwaysegstartpoints($inputway)
 {
     $outputway = $inputway;
 
-    for($ws=0; $ws < count($outputway->wayseg); $ws++)
+    for($ws=0; $ws < count($inputway->wayseg); $ws++)
     {
         $outputway->wayseg[$ws]->nodes[0]->type = "wpt";
         $outputway->wayseg[$ws]->nodes[0]->name = "shapingpoint";                        
