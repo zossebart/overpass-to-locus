@@ -6,6 +6,8 @@ $info = "converted by op2gpx ".$scriptver;
 $trackspeed = 5; //in Km/h
 $secperm = 3.6/$trackspeed;
 
+$brouter_server = "http://localhost:8080";
+
 $nodekeynames = array(
     "name",
     "power",
@@ -76,6 +78,7 @@ class way {
     public $wayseg = array();
     public $cusage = 0;
     public $length = 0;
+    public $gaps = 0;    
 }
 
 //relations
@@ -164,6 +167,18 @@ function outputwpt($node, $ignoreusage)
     return $returnstr;
 }
 
+function getwaygpxtags($way)
+{
+    $returnstr = "<name>$way->name</name>
+        \t<desc>$way->desc</desc>
+        \t<link href=\"http://www.openstreetmap.org/$way->type/$way->id\"><text>http://www.openstreetmap.org/$way->type/$way->id</text></link>\n";
+ 
+    if($way->comment != "")
+        $returnstr.="<cmt>$way->comment</cmt>";   
+
+    return $returnstr; 
+}
+
 function outputtrack($way, $withtime)
 {
     $returnstr = "";
@@ -176,13 +191,7 @@ function outputtrack($way, $withtime)
         $time_utc = new DateTime(null, new DateTimeZone("UTC"));
 
     //new track
-    $returnstr.="<trk>
-        \t<name>$way->name</name>
-        \t<desc>$way->desc</desc>
-        \t<link href=\"http://www.openstreetmap.org/$way->type/$way->id\"><text>http://www.openstreetmap.org/$way->type/$way->id</text></link>\n";
- 
-    if($way->comment != "")
-        $returnstr.="<cmt>$way->comment</cmt>";
+    $returnstr.="<trk>\t".getwaygpxtags($way);
 
     foreach($way->wayseg as $segment)
     {
@@ -262,7 +271,41 @@ function outputhttpheader($mime)
     header('Pragma: private');
 }
 
-function outputgpx ($nodes, $ways, $rels, $url, $mime, $zipit)
+function reroute($rel, $broute)
+{
+    $lonlats = "";
+
+    foreach($rel->way->wayseg as $wayseg)
+        foreach($wayseg->nodes as $node){
+            if($node->type == "wpt"){
+                if($lonlats != "")
+                    $lonlats .= "|";
+                $lonlats .= $node->lon.",".$node->lat;
+            }
+    }
+
+    $response = file_get_contents($GLOBALS["brouter_server"].'/brouter?lonlats='.$lonlats.'&nogos=&profile='.$broute.'&alternativeidx=0&format=gpx');
+
+    if($response){
+        if(preg_match("/\<wpt/m", $response, $matches, PREG_OFFSET_CAPTURE)){
+            $returnstr = substr($response, $matches[0][1]);
+
+            if(preg_match("/\<\/gpx/m", $returnstr, $matches, PREG_OFFSET_CAPTURE))
+                $returnstr = substr($returnstr, 0, $matches[0][1]);                
+
+            //fill in our name, desc and cmt fields
+            $rel->way->comment .= "\nrerouted with profile ".$broute;
+
+            $returnstr = preg_replace("/\<trk\>[.\s]*\<name\>.*\<\/name\>/m", "<trk>\t".getwaygpxtags($rel->way), $returnstr);
+        }
+        else
+            $returnstr = outputrel($rel, 1);
+    }
+
+    return $returnstr;
+}
+
+function outputgpx ($nodes, $ways, $rels, $url, $mime, $zipit, $broute)
 {
     $strgpxheader = "<?xml version=\"1.0\" encoding=\"utf-8\" standalone=\"yes\"?>
         <gpx version=\"1.1\" creator=\"op2gpx\"
@@ -289,7 +332,11 @@ function outputgpx ($nodes, $ways, $rels, $url, $mime, $zipit)
     $strdata = "";
 
     foreach($rels as $rel){
-        $strdata .= outputrel($rel, 1);    
+        if($rel->way->gaps == 0 && $broute != "")
+            $strdata = reroute($rel, $broute);
+        else
+            $strdata .= outputrel($rel, 1);    
+  
         if($zipit && $strdata != ""){
             $zip->addFromString('op2gpx-rel'.$rel->id.'.gpx', $strgpxheader.$strdata.$strgpxfooter);
             $strdata = "";
@@ -309,8 +356,6 @@ function outputgpx ($nodes, $ways, $rels, $url, $mime, $zipit)
         $strdata .= outputwpt($node, 0);
     if($zipit && $strdata != "")
         $zip->addFromString('op2gpx-nodes.gpx', $strgpxheader.$strdata.$strgpxfooter);
-
-
 
     if($zipit){
         $zip->close();
@@ -475,7 +520,7 @@ function getways(&$jsoninput, $naming, &$nodesinput, &$waysoutput)
 // scans $jsoninput for relations and adds them to $relsoutput
 // also increments counter of "consumed" rel-nodes in $nodesinput
 // also increments counter of "consumed" way in $waysinput 
-function getrels(&$jsoninput, $naming, $shpmode, &$nodesinput, &$waysinput, &$relsoutput)
+function getrels(&$jsoninput, $naming, $shpmode, $broute, &$nodesinput, &$waysinput, &$relsoutput)
 {
     foreach($jsoninput->elements as $ele)
     {   
@@ -544,13 +589,25 @@ function getrels(&$jsoninput, $naming, $shpmode, &$nodesinput, &$waysinput, &$re
             $currel->way = fixwaysegs($currel->way);
 
             //insert locus shaping points
-            if($shpmode & 1)
+            if($broute == "" && $shpmode & 1)
                 $currel->way = insertwaysegstartpoints($currel->way);                
-            if($shpmode & 2)
+            if($broute != "" || $shpmode & 2)
                 $currel->way = insertwaysegmidpoints($currel->way);
-            if($shpmode & 4)   
+            if($broute != "" || $shpmode & 4)   
                 $currel->way = insertwaysegsemistartpoints($currel->way);
 
+
+            if($broute != ""){
+
+                $currel->way->wayseg[0]->nodes[0]->type = "wpt";
+                $currel->way->wayseg[0]->nodes[0]->name = "shapingpoint";                
+
+                $waysegs = count($currel->way->wayseg);
+                $lwayseg_nodes = count($currel->way->wayseg[$waysegs - 1]->nodes);
+
+                $currel->way->wayseg[$waysegs - 1]->nodes[$lwayseg_nodes - 1]->type = "wpt";
+                $currel->way->wayseg[$waysegs - 1]->nodes[$lwayseg_nodes - 1]->name = "shapingpoint";
+            }
             //add to ways array
             $relsoutput[] = $currel;
         }
@@ -583,7 +640,7 @@ function fixwaysegs($inputway)
     $numsegs = count($outputway->wayseg);
     //variables for debugging
     $fixedsegs = 0;
-    $gaps = 0;
+    $outputway->gaps = 0;
 
     $fix1 = 0;
     $fix2 = 0;
@@ -633,7 +690,7 @@ function fixwaysegs($inputway)
                 //error_log("gap ".($i-1)."-".$i);
                 $i--;
                 $metaseg_count = 2;
-                $gaps++;
+                $outputway->gaps++;
             }
         }
     }
@@ -642,7 +699,7 @@ function fixwaysegs($inputway)
     //error_log("fixed ".$fixedsegs."/".$numsegs.", found ".$gaps." gaps");
     
     //add debugging info to resulting way
-    $outputway->comment = $outputway->comment."\nfixed ".$fixedsegs."/".$numsegs."(".$fix1."|".$fix2."|".$fix3.")".", found ".$gaps." gaps";
+    $outputway->comment = $outputway->comment."\nfixed ".$fixedsegs."/".$numsegs."(".$fix1."|".$fix2."|".$fix3.")".", found ".$outputway->gaps." gaps";
 
     //$outputway->name = $outputway->name."-fixed";
 
@@ -758,6 +815,7 @@ if(isset($_GET['timebase']))$timebase = $_GET['timebase']; else $timebase="serve
 if(isset($_GET['query']))$query = $_GET['query']; else $query="";
 if(isset($_GET['shpmode']))$shpmode = $_GET['shpmode']; else $shpmode="";
 if(isset($_GET['zip']))$zipit = $_GET['zip']; else $zipit="";
+if(isset($_GET['reroute']))$broute = $_GET['reroute']; else $broute="";
 
 $query = urldecode($query);
 error_log($query);
@@ -806,10 +864,10 @@ else
 
         //3. get all relations of the response 
         //(consumes nodes from $allnodes and ways from $allways)    
-        getrels($json, $naming, $shpmode, $allnodes, $allways, $allrels);
+        getrels($json, $naming, $shpmode, $broute, $allnodes, $allways, $allrels);
 
         //now construct the gpx output and return it
-        outputgpx ($allnodes, $allways, $allrels, $url, $mime, $zipit);
+        outputgpx ($allnodes, $allways, $allrels, $url, $mime, $zipit, $broute);
     }
 }
 
