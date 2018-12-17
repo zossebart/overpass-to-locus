@@ -50,6 +50,13 @@ $nodekeynames = array(
 
 //error_log("+++++++++++ op2gpx.php +++++++++++");
 
+class bbox {
+    public $minlat = 180;
+    public $maxlat = -180;
+    public $minlon = 180;
+    public $maxlon = -180;
+};
+
 //nodes
 class node {
     public $id;
@@ -93,6 +100,43 @@ class rel {
     public $vias = array();
     public $shps = array();
     public $cusage = 0;
+}
+
+function expand_bbox($bbox, $element)
+{
+    if(get_class($element) == "node") {
+        if($element->lat < $bbox->minlat)
+            $bbox->minlat = $element->lat;
+       if($element->lat > $bbox->maxlat)
+            $bbox->maxlat = $element->lat;
+        if($element->lon < $bbox->minlon)
+            $bbox->minlon = $element->lon;
+        if($element->lon > $bbox->maxlon)
+            $bbox->maxlon = $element->lon;
+    }
+
+    if(get_class($element) == "way")
+        foreach($element->wayseg as $segment)
+            foreach($segment->nodes as $node)
+                $bbox = expand_bbox($bbox, $node);
+
+    if(get_class($element) == "rel") {
+        foreach($element->pois as $node)
+            $bbox = expand_bbox($bbox, $node);
+        $bbox = expand_bbox($bbox, $element->way);
+    }
+
+    return $bbox;
+}
+
+function grow_bbox($bbox, $amount)
+{
+    $bbox->minlat -= $amount;
+    $bbox->maxlat += $amount;
+    $bbox->minlon -= $amount;
+    $bbox->maxlon += $amount;
+
+    return $bbox;
 }
 
 function haversineGreatCircleDistance($node1, $node2)
