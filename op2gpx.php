@@ -140,6 +140,35 @@ function interPoint($node1, $node2, $dist, $fraction)
     return $outnode;
 }
 
+function getgpxtags($element)
+{
+    $returnstr = "\n<name>$element->name</name>";
+
+    if($element->desc != "")
+        $returnstr .= "\n<desc>$element->desc</desc>";
+
+    if($element->id != "") {
+        if(get_class($element) == "node")
+            $osmtype = "node";
+        else
+            $osmtype = $element->type;
+
+        $returnstr .= "\n<link href=\"http://www.openstreetmap.org/$osmtype/$element->id\"><text>http://www.openstreetmap.org/$osmtype/$element->id</text></link>";
+    }
+
+    if($element->comment != "")
+        $returnstr.="\n<cmt>$element->comment</cmt>";   
+
+    if(get_class($element) == "node") {
+        if($element->time != "")
+            $returnstr.="\n<time>".$element->time."</time>";    
+
+        $returnstr.="\n<ele>0.00</ele>";    
+    }
+
+    return $returnstr; 
+}
+
 function outputwpt($node, $ignoreusage)
 {
     $returnstr = "";
@@ -148,35 +177,12 @@ function outputwpt($node, $ignoreusage)
         return;
 
     //error_log("output a node");
-    $returnstr.="<wpt lat=\"$node->lat\" lon=\"$node->lon\">
-        \t<name>$node->name</name>
-        \t<desc>$node->desc</desc>
-        \t<ele>0.00</ele>";
-
-    if($node->id != "")
-        $returnstr.="\t<link href=\"http://www.openstreetmap.org/node/$node->id\"><text>http://www.openstreetmap.org/node/$node->id</text></link>";
-
-    $returnstr.="\t<cmt>$node->comment</cmt>";
-
-    if($node->time != "")
-        $returnstr.="<time>".$node->time."</time>";    
-
-    $returnstr.="</wpt>\n";
+    $returnstr .= "<wpt lat=\"$node->lat\" lon=\"$node->lon\">";
+    $returnstr .= getgpxtags($node);
+    $returnstr .= "</wpt>\n";
         
     //print("<cmt>http://www.openstreetmap.org/node/$node->id</cmt>");
     return $returnstr;
-}
-
-function getwaygpxtags($way)
-{
-    $returnstr = "<name>$way->name</name>
-        \t<desc>$way->desc</desc>
-        \t<link href=\"http://www.openstreetmap.org/$way->type/$way->id\"><text>http://www.openstreetmap.org/$way->type/$way->id</text></link>\n";
- 
-    if($way->comment != "")
-        $returnstr.="<cmt>$way->comment</cmt>";   
-
-    return $returnstr; 
 }
 
 function outputtrack($way, $withtime)
@@ -191,7 +197,7 @@ function outputtrack($way, $withtime)
         $time_utc = new DateTime(null, new DateTimeZone("UTC"));
 
     //new track
-    $returnstr.="<trk>\t".getwaygpxtags($way);
+    $returnstr .= "<trk>\t".getgpxtags($way);
 
     foreach($way->wayseg as $segment)
     {
@@ -296,7 +302,7 @@ function reroute($rel, $broute)
             //fill in our name, desc and cmt fields
             $rel->way->comment .= "\nrerouted with profile ".$broute;
 
-            $returnstr = preg_replace("/\<trk\>[.\s]*\<name\>.*\<\/name\>/m", "<trk>\t".getwaygpxtags($rel->way), $returnstr);
+            $returnstr = preg_replace("/\<trk\>[.\s]*\<name\>.*\<\/name\>/m", "<trk>\t".getgpxtags($rel->way), $returnstr);
         }
         else
             $returnstr = outputrel($rel, 1);
@@ -540,6 +546,7 @@ function getrels(&$jsoninput, $naming, $shpmode, $broute, &$nodesinput, &$waysin
 
             $currel->id = $ele->id;
             $currel->way->id = $ele->id;
+            $currel->way->type = "relation";
 
             //now add all the nodes and ways contained in the relation
             if(property_exists($ele, 'members'))
@@ -816,6 +823,7 @@ if(isset($_GET['query']))$query = $_GET['query']; else $query="";
 if(isset($_GET['shpmode']))$shpmode = $_GET['shpmode']; else $shpmode="";
 if(isset($_GET['zip']))$zipit = $_GET['zip']; else $zipit="";
 if(isset($_GET['reroute']))$broute = $_GET['reroute']; else $broute="";
+if(isset($_GET['editlink']))$editlink = $_GET['editlink']; else $editlink="";
 
 $query = urldecode($query);
 error_log($query);
