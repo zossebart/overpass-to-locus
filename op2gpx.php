@@ -140,7 +140,7 @@ function interPoint($node1, $node2, $dist, $fraction)
     return $outnode;
 }
 
-function getgpxtags($element)
+function getgpxtags($element, $editlink)
 {
     $returnstr = "\n<name>$element->name</name>";
 
@@ -153,7 +153,14 @@ function getgpxtags($element)
         else
             $osmtype = $element->type;
 
-        $returnstr .= "\n<link href=\"http://www.openstreetmap.org/$osmtype/$element->id\"><text>http://www.openstreetmap.org/$osmtype/$element->id</text></link>";
+        if($editlink == "osmid")
+            $linkstr = "http://www.openstreetmap.org/edit?editor=id&amp;".$osmtype."=".$element->id;
+        else if($editlink == "level0")
+            $linkstr = "http://level0.osmz.ru/?url=".$osmtype."/".$element->id;
+        else
+            $linkstr = "http://www.openstreetmap.org/$osmtype/$element->id";
+
+        $returnstr .= "\n<link href=\"".$linkstr."\"><text>\"".$linkstr."\"</text></link>";
     }
 
     if($element->comment != "")
@@ -169,7 +176,7 @@ function getgpxtags($element)
     return $returnstr; 
 }
 
-function outputwpt($node, $ignoreusage)
+function outputwpt($node, $ignoreusage, $editlink)
 {
     $returnstr = "";
 
@@ -178,14 +185,14 @@ function outputwpt($node, $ignoreusage)
 
     //error_log("output a node");
     $returnstr .= "<wpt lat=\"$node->lat\" lon=\"$node->lon\">";
-    $returnstr .= getgpxtags($node);
+    $returnstr .= getgpxtags($node, $editlink);
     $returnstr .= "</wpt>\n";
         
     //print("<cmt>http://www.openstreetmap.org/node/$node->id</cmt>");
     return $returnstr;
 }
 
-function outputtrack($way, $withtime)
+function outputtrack($way, $withtime, $editlink)
 {
     $returnstr = "";
     $waypts = array();
@@ -197,7 +204,7 @@ function outputtrack($way, $withtime)
         $time_utc = new DateTime(null, new DateTimeZone("UTC"));
 
     //new track
-    $returnstr .= "<trk>\t".getgpxtags($way);
+    $returnstr .= "<trk>\t".getgpxtags($way, $editlink);
 
     foreach($way->wayseg as $segment)
     {
@@ -243,18 +250,18 @@ function outputtrack($way, $withtime)
  
     // output waypoints
     foreach($waypts as $waypt)
-        $returnstr .=  outputwpt($waypt, 1);
+        $returnstr .=  outputwpt($waypt, 1, $editlink);
 
     return $returnstr;
  }
 
-function outputrel($rel, $withtime)
+function outputrel($rel, $withtime, $editlink)
 {
     $returnstr = "";
-    $returnstr .= outputtrack($rel->way, $withtime);
+    $returnstr .= outputtrack($rel->way, $withtime, $editlink);
 
     foreach($rel->pois as $poi){
-        $returnstr .= outputwpt($poi, 0);
+        $returnstr .= outputwpt($poi, 0, $editlink);
     }
 
     return $returnstr;
@@ -311,7 +318,7 @@ function reroute($rel, $broute)
     return $returnstr;
 }
 
-function outputgpx ($nodes, $ways, $rels, $url, $mime, $zipit, $broute)
+function outputgpx ($nodes, $ways, $rels, $url, $mime, $zipit, $broute, $editlink)
 {
     $strgpxheader = "<?xml version=\"1.0\" encoding=\"utf-8\" standalone=\"yes\"?>
         <gpx version=\"1.1\" creator=\"op2gpx\"
@@ -341,7 +348,7 @@ function outputgpx ($nodes, $ways, $rels, $url, $mime, $zipit, $broute)
         if($rel->way->gaps == 0 && $broute != "")
             $strdata = reroute($rel, $broute);
         else
-            $strdata .= outputrel($rel, 1);    
+            $strdata .= outputrel($rel, 1, $editlink);    
   
         if($zipit && $strdata != ""){
             $zip->addFromString('op2gpx-rel'.$rel->id.'.gpx', $strgpxheader.$strdata.$strgpxfooter);
@@ -352,14 +359,14 @@ function outputgpx ($nodes, $ways, $rels, $url, $mime, $zipit, $broute)
     if($zipit)
         $strdata = "";
     foreach($ways as $way)
-        $strdata .= outputtrack($way, 1);
+        $strdata .= outputtrack($way, 1, $editlink);
     if($zipit && $strdata != "")
         $zip->addFromString('op2gpx-ways.gpx', $strgpxheader.$strdata.$strgpxfooter);
 
     if($zipit)
         $strdata = "";
     foreach($nodes as $node)
-        $strdata .= outputwpt($node, 0);
+        $strdata .= outputwpt($node, 0, $editlink);
     if($zipit && $strdata != "")
         $zip->addFromString('op2gpx-nodes.gpx', $strgpxheader.$strdata.$strgpxfooter);
 
@@ -875,7 +882,7 @@ else
         getrels($json, $naming, $shpmode, $broute, $allnodes, $allways, $allrels);
 
         //now construct the gpx output and return it
-        outputgpx ($allnodes, $allways, $allrels, $url, $mime, $zipit, $broute);
+        outputgpx ($allnodes, $allways, $allrels, $url, $mime, $zipit, $broute, $editlink);
     }
 }
 
