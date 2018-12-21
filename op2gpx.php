@@ -212,7 +212,7 @@ function getgpxtags($element, $editlink)
         else
             $linkstr = "http://www.openstreetmap.org/$osmtype/$element->id";
 
-        $returnstr .= "\n<link href=\"".$linkstr."\"><text>\"".$linkstr."\"</text></link>";
+        $returnstr .= "\n<link href=\"".$linkstr."\"><text>".$linkstr."</text></link>";
     }
 
     if($element->comment != "")
