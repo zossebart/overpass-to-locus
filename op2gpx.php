@@ -336,7 +336,7 @@ function outputhttpheader($mime)
     header('Pragma: private');
 }
 
-function reroute($rel, $broute)
+function reroute($rel, $broute, $editlink)
 {
     $lonlats = "";
 
@@ -361,7 +361,7 @@ function reroute($rel, $broute)
             //fill in our name, desc and cmt fields
             $rel->way->comment .= "\nrerouted with profile ".$broute;
 
-            $returnstr = preg_replace("/\<trk\>[.\s]*\<name\>.*\<\/name\>/m", "<trk>\t".getgpxtags($rel->way), $returnstr);
+            $returnstr = preg_replace("/\<trk\>[.\s]*\<name\>.*\<\/name\>/m", "<trk>\t".getgpxtags($rel->way, $editlink), $returnstr);
         }
         else
             $returnstr = outputrel($rel, 1);
@@ -398,7 +398,7 @@ function outputgpx ($nodes, $ways, $rels, $url, $mime, $zipit, $broute, $editlin
 
     foreach($rels as $rel){
         if($rel->way->gaps == 0 && $broute != "")
-            $strdata = reroute($rel, $broute);
+            $strdata = reroute($rel, $broute, $editlink);
         else
             $strdata .= outputrel($rel, 1, $editlink);    
   
