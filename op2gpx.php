@@ -201,6 +201,14 @@ function getgpxtags($element, $editlink)
             $linkstr = "http://www.openstreetmap.org/edit?editor=id&amp;".$osmtype."=".$element->id;
         else if($editlink == "level0")
             $linkstr = "http://level0.osmz.ru/?url=".$osmtype."/".$element->id;
+        else if($editlink == "vespucci"){
+            $editbbox = new bbox;
+
+            $editbbox = expand_bbox($editbbox, $element);
+            $editbbox = grow_bbox($editbbox, 0.0004);
+
+            $linkstr = "http://127.0.0.1:8111/load_and_zoom?left=".$editbbox->minlon."&amp;bottom=".$editbbox->minlat."&amp;right=".$editbbox->maxlon."&amp;top=".$editbbox->maxlat."&amp;select=".$osmtype.$element->id;
+        }
         else
             $linkstr = "http://www.openstreetmap.org/$osmtype/$element->id";
 
