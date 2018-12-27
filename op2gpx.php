@@ -214,10 +214,10 @@ function getgpxtags($element, $editlink)
 
         $returnstr .= "\n<link href=\"".$linkstr."\"><text>".$linkstr."</text></link>";
     }
-
+/*
     if($element->comment != "")
         $returnstr.="\n<cmt>$element->comment</cmt>";   
-
+*/
     if(get_class($element) == "node") {
         if($element->time != "")
             $returnstr.="\n<time>".$element->time."</time>";    
@@ -470,7 +470,7 @@ function get_name_desc($input, $type, $naming, &$output)
 
             //fill desc
             foreach($input->tags as $key => $value)
-                $output->desc .= $key . "=" . $value . "\n";
+                $output->desc .= $key . "=" . $value . ", ";
         }
 
         //if no name was found, use id
