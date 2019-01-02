@@ -55,7 +55,19 @@ class bbox {
     public $maxlat = -180;
     public $minlon = 180;
     public $maxlon = -180;
-};
+}
+
+class linestyle {
+    public $color = array(0, 0, 255);
+    public $opacity = 0.59;
+    public $width = 5.0;
+
+    public function  __construct($c, $o, $w) {
+    $this->color = $c;
+    $this->opacity = $o;
+    $this->width = $w;
+    }    
+}
 
 //nodes
 class node {
@@ -85,7 +97,8 @@ class way {
     public $wayseg = array();
     public $cusage = 0;
     public $length = 0;
-    public $gaps = 0;    
+    public $gaps = 0;
+    public $style;
 }
 
 //relations
@@ -257,6 +270,17 @@ function outputtrack($way, $withtime, $editlink)
 
     //new track
     $returnstr .= "<trk>\t".getgpxtags($way, $editlink);
+
+    // style
+    if($way->style != ""){
+        $returnstr .= "\n<extensions>\n<gpx_style:line>";
+
+        $returnstr .= "\n<gpx_style:color>".sprintf("%02x%02x%02x", $way->style->color[0], $way->style->color[1], $way->style->color[2])."</gpx_style:color>";
+        $returnstr .= "\n<gpx_style:opacity>".$way->style->opacity."</gpx_style:opacity>";
+        $returnstr .= "\n<gpx_style:width>".$way->style->width."</gpx_style:width>";
+
+        $returnstr .= "\n</gpx_style:line>\n</extensions>";        
+    }
 
     foreach($way->wayseg as $segment)
     {
@@ -479,6 +503,11 @@ function get_name_desc($input, $type, $naming, &$output)
     }    
 }
 
+function get_style($input, &$output)
+{
+    $output->style = new linestyle;    
+}
+
 // scans $jsoninput for nodes and adds them to $nodesoutput
 // also removes them from $jsoninput for speedup of later scans
 function getnodes(&$jsoninput, $naming, &$nodesoutput)
@@ -536,6 +565,7 @@ function getways(&$jsoninput, $naming, &$nodesinput, &$waysoutput)
             //error_log("->way found");
 
             get_name_desc($ele, $ele->type, $naming, $curway);
+            get_style($ele, $curway);
 
             //error_log("way name is ".$curway->name);
 
