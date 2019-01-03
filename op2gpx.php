@@ -935,6 +935,7 @@ if(isset($_GET['shpmode']))$shpmode = $_GET['shpmode']; else $shpmode="";
 if(isset($_GET['zip']))$zipit = $_GET['zip']; else $zipit="";
 if(isset($_GET['reroute']))$broute = $_GET['reroute']; else $broute="";
 if(isset($_GET['editlink']))$editlink = $_GET['editlink']; else $editlink="";
+if(isset($_GET['style']))$style = $_GET['style']; else $style="";
 
 $query = urldecode($query);
 error_log($query);
