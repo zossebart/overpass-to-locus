@@ -19,6 +19,7 @@ $shpmode2 = $_GET['shpmode2'];
 $shpmode3 = $_GET['shpmode3'];
 $zip = $_GET['zip'];
 $editlink = $_GET['editlink'];
+$style = $_GET['style'];
 
 //print html skel
 print("<html><body>");
@@ -66,6 +67,9 @@ if($zip == "yes")
 
 if($editlink != "")
 	$url = $url."&editlink=".$editlink;
+
+if($style != "")
+	$url = $url."&style=".$style;
 
 	//print("&timebase={timeUtc}");
 

@@ -8,6 +8,8 @@ $secperm = 3.6/$trackspeed;
 
 $brouter_server = "http://localhost:8080";
 
+include 'styles.php';
+
 $nodekeynames = array(
     "name",
     "power",
@@ -55,7 +57,19 @@ class bbox {
     public $maxlat = -180;
     public $minlon = 180;
     public $maxlon = -180;
-};
+}
+
+class linestyle {
+    public $color = array(0, 0, 255);
+    public $opacity = 0.59;
+    public $width = 5.0;
+
+    public function  __construct($c, $o, $w) {
+    $this->color = $c;
+    $this->opacity = $o;
+    $this->width = $w;
+    }    
+}
 
 //nodes
 class node {
@@ -85,7 +99,8 @@ class way {
     public $wayseg = array();
     public $cusage = 0;
     public $length = 0;
-    public $gaps = 0;    
+    public $gaps = 0;
+    public $style;
 }
 
 //relations
@@ -257,6 +272,17 @@ function outputtrack($way, $withtime, $editlink)
 
     //new track
     $returnstr .= "<trk>\t".getgpxtags($way, $editlink);
+
+    // style
+    if($way->style != ""){
+        $returnstr .= "\n<extensions>\n<gpx_style:line>";
+
+        $returnstr .= "\n<gpx_style:color>".sprintf("%02x%02x%02x", $way->style->color[0], $way->style->color[1], $way->style->color[2])."</gpx_style:color>";
+        $returnstr .= "\n<gpx_style:opacity>".$way->style->opacity."</gpx_style:opacity>";
+        $returnstr .= "\n<gpx_style:width>".$way->style->width."</gpx_style:width>";
+
+        $returnstr .= "\n</gpx_style:line>\n</extensions>";        
+    }
 
     foreach($way->wayseg as $segment)
     {
@@ -479,6 +505,29 @@ function get_name_desc($input, $type, $naming, &$output)
     }    
 }
 
+function get_style($input, &$output, $style)
+{
+    if($style == "mtb")
+        $spec = $GLOBALS["mtblinestyle"];
+    else {
+        $output->style = new linestyle(array(0,0,255), 0.59, 5.0);            
+        return; //default style
+    }
+
+    if(isset($input))
+        if(property_exists($input, 'tags'))
+            foreach($spec as $checkspec){
+                $ckey = $checkspec->key;
+                if(array_key_exists($ckey, $input->tags))
+                    if($checkspec->value == $input->tags->$ckey){
+                        $output->style = $checkspec->style;
+                        return;
+                    }
+            }
+
+    $output->style = $spec["default"]->style;
+}
+
 // scans $jsoninput for nodes and adds them to $nodesoutput
 // also removes them from $jsoninput for speedup of later scans
 function getnodes(&$jsoninput, $naming, &$nodesoutput)
@@ -519,7 +568,7 @@ function getnodes(&$jsoninput, $naming, &$nodesoutput)
 // scans $jsoninput for ways and adds them to $waysoutput
 // also removes them from $jsoninput for speedup of later scans
 // also increments counter of "consumed" way-nodes in $nodesinput
-function getways(&$jsoninput, $naming, &$nodesinput, &$waysoutput)
+function getways(&$jsoninput, $naming, $style, &$nodesinput, &$waysoutput)
 {
     $consumedresponseways = array();
 
@@ -536,6 +585,9 @@ function getways(&$jsoninput, $naming, &$nodesinput, &$waysoutput)
             //error_log("->way found");
 
             get_name_desc($ele, $ele->type, $naming, $curway);
+            
+            if($style != "")
+                get_style($ele, $curway, $style);
 
             //error_log("way name is ".$curway->name);
 
@@ -883,6 +935,7 @@ if(isset($_GET['shpmode']))$shpmode = $_GET['shpmode']; else $shpmode="";
 if(isset($_GET['zip']))$zipit = $_GET['zip']; else $zipit="";
 if(isset($_GET['reroute']))$broute = $_GET['reroute']; else $broute="";
 if(isset($_GET['editlink']))$editlink = $_GET['editlink']; else $editlink="";
+if(isset($_GET['style']))$style = $_GET['style']; else $style="";
 
 $query = urldecode($query);
 error_log($query);
@@ -927,7 +980,7 @@ else
         getnodes($json, $naming, $allnodes);
 
         //2. get all ways of the response (consumes nodes from $allnodes)    
-        getways($json, $naming, $allnodes, $allways);
+        getways($json, $naming, $style, $allnodes, $allways);
 
         //3. get all relations of the response 
         //(consumes nodes from $allnodes and ways from $allways)    
