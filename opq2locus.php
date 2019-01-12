@@ -52,7 +52,7 @@ if($locusaction == "import")
 if($naming != "")
 	$url = $url."&naming=".$naming;
 
-if($tbase != "server")
+if($tbase == "locus")
 	$url = $url."&timebase={timeUtc}";
 	
 $shpmode = 0;
