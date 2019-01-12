@@ -31,6 +31,9 @@ $url = $input;
 if(!strpos($url, "out:json"))
 	$url = "[out:json]".$url;
 
+if(!strpos($url, "timeout:"))
+	$url = "[timeout:25]".$url;
+
 $url = urlencode($url);
 
 $url = preg_replace($patterns, $replacements, $url);
