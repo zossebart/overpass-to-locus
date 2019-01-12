@@ -28,11 +28,17 @@ print("opq2locus got input:<br>$input<br><br>");
 //construct the url
 $url = $input;
 
-if(!strpos($url, "out:json"))
+if(!strpos($url, "out:json")){
+	if(!preg_match('/\[(out|timeout|maxsize|bbox|date|diff|adiff)\:.*\]\;/', $url, $dummy))
+		$url = ";".$url;	
 	$url = "[out:json]".$url;
+}
 
-if(!strpos($url, "timeout:"))
+if(!strpos($url, "timeout:")){
+	if(!preg_match('/\[(out|timeout|maxsize|bbox|date|diff|adiff)\:.*\]\;/', $url, $dummy))
+		$url = ";".$url;		
 	$url = "[timeout:25]".$url;
+}
 
 $url = urlencode($url);
 
@@ -46,7 +52,7 @@ if($locusaction == "import")
 if($naming != "")
 	$url = $url."&naming=".$naming;
 
-if($tbase != "server")
+if($tbase == "locus")
 	$url = $url."&timebase={timeUtc}";
 	
 $shpmode = 0;
