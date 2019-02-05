@@ -101,6 +101,7 @@ class way {
     public $length = 0;
     public $gaps = 0;
     public $style;
+    public $nodecount = 0;
 }
 
 //relations
@@ -265,6 +266,9 @@ function outputtrack($way, $withtime, $editlink)
     $waypts = array();
     //error_log("output a track");
     if($way->cusage > 0)
+        return;
+
+    if($way->nodecount < 2)
         return;
 
     if($withtime != "")
@@ -594,7 +598,7 @@ function getways(&$jsoninput, $naming, $style, &$nodesinput, &$waysoutput)
             //also save the id (helps build up the relations afterwards)
             $curway->id = $ele->id;
 
-            $nodecount = 0;
+            $curway->nodecount = 0;
             //now add all the nodes building up the way            
             foreach ($ele->nodes as $waynode)
             {
@@ -609,7 +613,7 @@ function getways(&$jsoninput, $naming, $style, &$nodesinput, &$waysoutput)
                         //error_log("found way-node ".$temp->lon.", ".$temp->lat);                        
                         $temp->type = "trkpt";
 
-                        if($nodecount++ > 0)
+                        if($curway->nodecount++ > 0)
                             $curway->wayseg[0]->length += haversineGreatCircleDistance(lastnode($curway->wayseg[0]), $temp);
 
                         $curway->wayseg[0]->nodes[] = clone($temp);      
@@ -703,28 +707,30 @@ function getrels(&$jsoninput, $naming, $shpmode, $broute, &$nodesinput, &$waysin
                     }
                 }                
             }
-            //try to fix segment directions
-            $currel->way = fixwaysegs($currel->way);
 
-            //insert locus shaping points
-            if($broute == "" && $shpmode & 1)
-                $currel->way = insertwaysegstartpoints($currel->way);                
-            if($broute != "" || $shpmode & 2)
-                $currel->way = insertwaysegmidpoints($currel->way);
-            if($broute != "" || $shpmode & 4)   
-                $currel->way = insertwaysegsemistartpoints($currel->way);
+            if($currel->way->nodecount > 1){
+                //try to fix segment directions
+                $currel->way = fixwaysegs($currel->way);
+
+                //insert locus shaping points
+                if($broute == "" && $shpmode & 1)
+                    $currel->way = insertwaysegstartpoints($currel->way);                
+                if($broute != "" || $shpmode & 2)
+                    $currel->way = insertwaysegmidpoints($currel->way);
+                if($broute != "" || $shpmode & 4)   
+                    $currel->way = insertwaysegsemistartpoints($currel->way);
 
 
-            if($broute != ""){
+                if($broute != ""){
+                    $currel->way->wayseg[0]->nodes[0]->type = "wpt";
+                    $currel->way->wayseg[0]->nodes[0]->name = "shapingpoint";                
 
-                $currel->way->wayseg[0]->nodes[0]->type = "wpt";
-                $currel->way->wayseg[0]->nodes[0]->name = "shapingpoint";                
+                    $waysegs = count($currel->way->wayseg);
+                    $lwayseg_nodes = count($currel->way->wayseg[$waysegs - 1]->nodes);
 
-                $waysegs = count($currel->way->wayseg);
-                $lwayseg_nodes = count($currel->way->wayseg[$waysegs - 1]->nodes);
-
-                $currel->way->wayseg[$waysegs - 1]->nodes[$lwayseg_nodes - 1]->type = "wpt";
-                $currel->way->wayseg[$waysegs - 1]->nodes[$lwayseg_nodes - 1]->name = "shapingpoint";
+                    $currel->way->wayseg[$waysegs - 1]->nodes[$lwayseg_nodes - 1]->type = "wpt";
+                    $currel->way->wayseg[$waysegs - 1]->nodes[$lwayseg_nodes - 1]->name = "shapingpoint";
+                }
             }
             //add to ways array
             $relsoutput[] = $currel;
