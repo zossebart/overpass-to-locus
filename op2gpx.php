@@ -208,8 +208,14 @@ function getgpxtags($element, $editlink)
         $returnstr .= "\n<desc>$element->desc</desc>";
 
     if($element->id != "") {
-        if(get_class($element) == "node")
-            $osmtype = "node";
+        if(get_class($element) == "node"){
+            if($element->type == "waycenter")
+                $osmtype = "way";
+            else if($element->type == "relcenter")
+                $osmtype = "relation";
+            else
+                $osmtype = "node";
+        }
         else
             $osmtype = $element->type;
 
@@ -532,6 +538,25 @@ function get_style($input, &$output, $style)
     $output->style = $spec["default"]->style;
 }
 
+function get_center_node($ele, $curele, $type)
+{
+    if (property_exists($ele, 'center')){
+        $tmpnode = new node;
+
+        $tmpnode->lat = $ele->center->lat;
+        $tmpnode->lon = $ele->center->lon;
+        $tmpnode->id = $curele->id;
+        $tmpnode->type = $type;
+        $tmpnode->name = $curele->name;
+        $tmpnode->desc = $curele->desc;
+        $tmpnode->comment = $curele->comment;
+
+        return $tmpnode;
+    }
+
+    return NULL;
+}
+
 // scans $jsoninput for nodes and adds them to $nodesoutput
 // also removes them from $jsoninput for speedup of later scans
 function getnodes(&$jsoninput, $naming, &$nodesoutput)
@@ -623,6 +648,11 @@ function getways(&$jsoninput, $naming, $style, &$nodesinput, &$waysoutput)
                     }
                 }
             }
+
+            //if there is a center, add it as node
+            if (property_exists($ele, 'center'))
+                $nodesinput[] = get_center_node($ele, $curway, "waycenter");
+
             //add to ways array
             $waysoutput[] = $curway;
             //remove it from response afterwards
@@ -732,6 +762,11 @@ function getrels(&$jsoninput, $naming, $shpmode, $broute, &$nodesinput, &$waysin
                     $currel->way->wayseg[$waysegs - 1]->nodes[$lwayseg_nodes - 1]->name = "shapingpoint";
                 }
             }
+            
+            //if there is a center, add it as node
+            if (property_exists($ele, 'center'))
+                $nodesinput[] = get_center_node($ele, $currel->way, "relcenter");
+
             //add to ways array
             $relsoutput[] = $currel;
         }
