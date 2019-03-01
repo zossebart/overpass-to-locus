@@ -12,7 +12,7 @@ function get_query_timeout($query)
 
 function get_timeout_with_margin($timeout, $reroute)
 {
-	$ret = $timeout * 1.15;
+	$ret = ($timeout * 1.15) + 5;
 	if($reroute != "0")
 		$ret += 20;
 	return ceil( $ret );
