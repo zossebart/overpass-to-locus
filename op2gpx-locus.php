@@ -37,7 +37,7 @@ error_log("->final timeout: ".$timeout);
 print("<?xml version=\"1.0\" encoding=\"utf-8\"?>
 	<locusActions>
 	<download>
-	        <source timeout=\"120\">
+	        <source timeout=\"$timeout\">
 	        $redirecturl
 	        </source>");
 
