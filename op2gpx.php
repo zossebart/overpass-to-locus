@@ -385,7 +385,12 @@ function reroute($rel, $broute, $editlink)
             }
     }
 
+    $default_socket_timeout = ini_get('default_socket_timeout');
+    ini_set('default_socket_timeout', 120);
+
     $response = file_get_contents($GLOBALS["brouter_server"].'/brouter?lonlats='.$lonlats.'&nogos=&profile='.$broute.'&alternativeidx=0&format=gpx');
+
+    ini_set('default_socket_timeout', $default_socket_timeout);
 
     if($response){
         if(preg_match("/\<wpt/m", $response, $matches, PREG_OFFSET_CAPTURE)){
@@ -1000,8 +1005,14 @@ error_log($url);
 //modify_url($url);
 //error_log($url);
 
+$default_socket_timeout = ini_get('default_socket_timeout');
+ini_set('default_socket_timeout', 360);
+
 //get the response from overpass api
 $response = file_get_contents($url);
+
+ini_set('default_socket_timeout', $default_socket_timeout);
+
 if(!$response)
 {
     http_response_code(404);

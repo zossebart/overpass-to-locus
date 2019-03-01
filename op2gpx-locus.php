@@ -1,8 +1,11 @@
 <?php
 
+include 'misc.php';
+
 $redirecturl = "<![CDATA[http://".$_SERVER['SERVER_NAME'].dirname($_SERVER['SCRIPT_NAME'])."/op2gpx.php";
 
 $pcount = 0;
+$reroute = 0;
 foreach($_GET as $idx => $val){
 	if($pcount++ == 0)
 		$redirecturl .= "?";
@@ -12,18 +15,29 @@ foreach($_GET as $idx => $val){
 	if($idx != "act"){	// act is handled by this script later
 		$redirecturl .= $idx."=";
 
-		if($idx == "query")
+		if($idx == "reroute")
+			$reroute = 1;
+
+		if($idx == "query"){
+			// get timeout
+			$timeout = get_query_timeout($val);
+			error_log("got timeout: ".$timeout);	
 			$redirecturl .= urlencode($val); // query has to be re-urlencoded
+		}
 		else
 			$redirecturl .= $val; // no special meaning, simply pass the param
 	}
 }
 $redirecturl .= "]]>";
 
+$timeout = get_timeout_with_margin($timeout, $reroute);
+
+error_log("->final timeout: ".$timeout);
+
 print("<?xml version=\"1.0\" encoding=\"utf-8\"?>
 	<locusActions>
 	<download>
-	        <source>
+	        <source timeout=\"120\">
 	        $redirecturl
 	        </source>");
 
