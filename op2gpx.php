@@ -9,6 +9,7 @@ $secperm = 3.6/$trackspeed;
 $brouter_server = "http://localhost:8080";
 
 include 'styles.php';
+include 'misc.php';
 
 $nodekeynames = array(
     "name",
@@ -1006,8 +1007,10 @@ error_log($url);
 //modify_url($url);
 //error_log($url);
 
+$timeout = get_query_timeout($query);
+
 $default_socket_timeout = ini_get('default_socket_timeout');
-ini_set('default_socket_timeout', 360);
+ini_set('default_socket_timeout', $timeout + 5);
 
 //get the response from overpass api
 $response = file_get_contents($url);
