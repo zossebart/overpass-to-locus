@@ -730,6 +730,7 @@ function getrels(&$jsoninput, $naming, $shpmode, $broute, &$nodesinput, &$waysin
                             //error_log("found relation-way");       
 
                             $currel->way->wayseg[] = clone($temp->wayseg[0]);
+                            $currel->way->nodecount += $temp->nodecount;
                             // increment usage count
                             $waysinput[$elemkey]->cusage++;
                             break;                               
