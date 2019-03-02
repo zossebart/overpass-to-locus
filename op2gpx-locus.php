@@ -21,7 +21,6 @@ foreach($_GET as $idx => $val){
 		if($idx == "query"){
 			// get timeout
 			$timeout = get_query_timeout($val);
-			error_log("got timeout: ".$timeout);	
 			$redirecturl .= urlencode($val); // query has to be re-urlencoded
 		}
 		else
@@ -31,8 +30,6 @@ foreach($_GET as $idx => $val){
 $redirecturl .= "]]>";
 
 $timeout = get_timeout_with_margin($timeout, $reroute);
-
-error_log("->final timeout: ".$timeout);
 
 print("<?xml version=\"1.0\" encoding=\"utf-8\"?>
 	<locusActions>
