@@ -988,6 +988,8 @@ if(isset($_GET['style']))$style = $_GET['style']; else $style="";
 $query = urldecode($query);
 error_log($query);
 
+$query = strip_comments($query);
+
 modify_url_dates($query, $timebase);
 error_log($query);
 

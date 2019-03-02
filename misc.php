@@ -18,4 +18,21 @@ function get_timeout_with_margin($timeout, $reroute)
 	return ceil( $ret );
 }
 
+function strip_comments($query)
+{
+	$ret = preg_replace('/\/\*.*\*\//', '', $query);
+
+	if($ret != NULL)
+		$ret2 = preg_replace('/\/\/.*$/m', '', $ret);
+	else
+		$ret2 = preg_replace('/\/\/.*$/m', '', $query);		
+
+	if($ret2 != NULL)
+		return $ret2;
+	else if($ret != NULL)
+		return $ret;
+	else
+		return $query;
+}
+
 ?>

@@ -1,5 +1,7 @@
 <?php
 
+include 'misc.php';
+
 $patterns = array();
 $patterns[0] = '(%7B%7Bbbox%7D%7D)';
 $patterns[1] = '(%7B%7Bcenter%7D%7D)';
@@ -39,6 +41,8 @@ if(!strpos($url, "timeout:")){
 		$url = ";".$url;		
 	$url = "[timeout:25]".$url;
 }
+
+$url = strip_comments($url);
 
 $url = urlencode($url);
 
