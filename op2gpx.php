@@ -872,6 +872,38 @@ function fixwaysegs($inputway)
     return $outputway;
 }
 
+function generate_wayseg_point($wayseg, $fraction, &$outputnode)
+{
+    $curlen = 0;
+    $nodecount = 0;
+
+    if($fraction < 0 || $fraction > 1)
+        return (-1);
+
+    $targetlen = $wayseg->length * $fraction;
+
+    if($fraction == 0)
+        $outputnode = clone(firstnode($wayseg));
+    else if($fraction == 1)
+        $outputnode = clone(lastnode($wayseg));
+    else
+        foreach($wayseg->nodes as $node){
+            if($nodecount++ > 0){
+                $partlen = haversineGreatCircleDistance($oldnode, $node);
+                $curlen += $partlen;
+            }
+
+            if($curlen > $targetlen){
+                $frac = ($curlen - $targetlen) / $partlen;
+                $outputnode = interPoint($node, $oldnode, $partlen, $frac);
+                break;
+            }                
+
+            $oldnode = $node;
+        }
+
+    return $nodecount;
+}
 
 function insertwaysegstartpoints($inputway)
 {
