@@ -905,6 +905,21 @@ function generate_wayseg_point($wayseg, $fraction, &$outputnode)
     return $nodecount;
 }
 
+function insertwaysegpoint($inputwayseg, $fraction)
+{
+    $outputwayseg = $inputwayseg;
+
+    $nodecount = generate_wayseg_point($inputwayseg, $fraction, $newnode);
+    if($nodecount != -1){
+        $newnode->type = "wpt";
+        $newnode->name = "shapingpoint";
+
+        array_splice( $outputwayseg->nodes, $nodecount - 1, 0, array($newnode));
+    }
+
+    return $outputwayseg;
+}
+
 function insertwaysegstartpoints($inputway)
 {
     $outputway = $inputway;
@@ -917,40 +932,13 @@ function insertwaysegstartpoints($inputway)
     return $outputway;
 }
 
-
 function insertwaysegmidpoints($inputway)
 {
     $outputway = $inputway;
 
     foreach($inputway->wayseg as $segment)
-    {
-        $curlen = 0;
-        $nodecount = 0;
-        foreach($segment->nodes as $node)
-        {
-            if($nodecount++ > 0){
-                $partlen = haversineGreatCircleDistance($oldnode, $node);
-                $curlen += $partlen;                
-            }
+        $segment = insertwaysegpoint($segment, 0.5);
 
-            if($curlen > ($segment->length / 2))
-            {
-                //error_log("insert midpoint before node ".$nodecount." (ovlen ".$segment->length." cur ".$curlen);
-
-                $fraction = ($curlen - ($segment->length / 2)) / $partlen;
-
-                //error_log("dnodes ".$partlen." frac ".$fraction);
-
-                $newnode = interPoint($node, $oldnode, $partlen, $fraction);
-                $newnode->type = "wpt";
-                $newnode->name = "shapingpoint";                
-
-                array_splice( $segment->nodes, $nodecount - 1, 0, array($newnode));
-                break;
-            }
-            $oldnode = $node;
-        }
-    }
     return $outputway;
 }
 
@@ -960,20 +948,11 @@ function insertwaysegsemistartpoints($inputway)
 
     foreach($inputway->wayseg as $segment)
     {
-        $partlen = haversineGreatCircleDistance($segment->nodes[0], $segment->nodes[1]);
+        $frac = 10 / $segment->length;
+        if($frac > 1)
+            $frac = 0.95;
 
-        if($partlen > 10)
-            $fraction = (10 / $partlen);
-        else
-            $fraction = 0.95;
-
-        //error_log("dnodes ".$partlen." frac ".$fraction);
-
-        $newnode = interPoint($segment->nodes[0], $segment->nodes[1], $partlen, $fraction);
-        $newnode->type = "wpt";
-        $newnode->name = "shapingpoint";                
-
-        array_splice( $segment->nodes, 1, 0, array($newnode));
+        $segment = insertwaysegpoint($segment, $frac);
     }
     return $outputway;
 }
