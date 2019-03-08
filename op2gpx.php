@@ -609,7 +609,7 @@ function getnodes(&$jsoninput, $naming, &$nodesoutput)
 // scans $jsoninput for ways and adds them to $waysoutput
 // also removes them from $jsoninput for speedup of later scans
 // also increments counter of "consumed" way-nodes in $nodesinput
-function getways(&$jsoninput, $naming, $style, &$nodesinput, &$waysoutput)
+function getways(&$jsoninput, $naming, $style, $waytopoi, &$nodesinput, &$waysoutput)
 {
     $consumedresponseways = array();
 
@@ -665,8 +665,24 @@ function getways(&$jsoninput, $naming, $style, &$nodesinput, &$waysoutput)
             if (property_exists($ele, 'center'))
                 $nodesinput[] = get_center_node($ele, $curway, "waycenter");
 
-            //add to ways array
-            $waysoutput[] = $curway;
+            if ($waytopoi != ""){
+                if($waytopoi < 0)
+                    $frac = 0;
+                else if($waytopoi > 100)
+                    $frac = 1;
+                else
+                    $frac = ($waytopoi / 100);
+
+                generate_wayseg_point($curway->wayseg[0], $frac, $newnode);
+                $newnode->type = "waycenter";
+
+                copy_meta($curway, $newnode);
+
+                $nodesinput[] = $newnode;
+            }
+            else
+                $waysoutput[] = $curway; //add to ways array
+
             //remove it from response afterwards
             $consumedresponseways [] = $reskey;            
         }
@@ -1001,6 +1017,7 @@ if(isset($_GET['zip']))$zipit = $_GET['zip']; else $zipit="";
 if(isset($_GET['reroute']))$broute = $_GET['reroute']; else $broute="";
 if(isset($_GET['editlink']))$editlink = $_GET['editlink']; else $editlink="";
 if(isset($_GET['style']))$style = $_GET['style']; else $style="";
+if(isset($_GET['waytopoi']))$waytopoi = $_GET['waytopoi']; else $waytopoi="";
 
 $query = urldecode($query);
 error_log($query);
@@ -1055,7 +1072,7 @@ else
         getnodes($json, $naming, $allnodes);
 
         //2. get all ways of the response (consumes nodes from $allnodes)    
-        getways($json, $naming, $style, $allnodes, $allways);
+        getways($json, $naming, $style, $waytopoi, $allnodes, $allways);
 
         //3. get all relations of the response 
         //(consumes nodes from $allnodes and ways from $allways)    

@@ -22,6 +22,7 @@ $shpmode3 = $_GET['shpmode3'];
 $zip = $_GET['zip'];
 $editlink = $_GET['editlink'];
 $style = $_GET['style'];
+$waytopoi = $_GET['waytopoi'];
 
 //print html skel
 print("<html><body>");
@@ -83,6 +84,9 @@ if($editlink != "")
 
 if($style != "")
 	$url = $url."&style=".$style;
+
+if($waytopoi != "")
+	$url = $url."&waytopoi=".$waytopoi;
 
 	//print("&timebase={timeUtc}");
 
