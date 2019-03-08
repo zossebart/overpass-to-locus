@@ -544,6 +544,14 @@ function get_style($input, &$output, $style)
     $output->style = $spec["default"]->style;
 }
 
+function copy_meta($src, $dst)
+{
+    $dst->id = $src->id;
+    $dst->name = $src->name;
+    $dst->desc = $src->desc;
+    $dst->comment = $src->comment;
+}
+
 function get_center_node($ele, $curele, $type)
 {
     if (property_exists($ele, 'center')){
@@ -551,11 +559,9 @@ function get_center_node($ele, $curele, $type)
 
         $tmpnode->lat = $ele->center->lat;
         $tmpnode->lon = $ele->center->lon;
-        $tmpnode->id = $curele->id;
         $tmpnode->type = $type;
-        $tmpnode->name = $curele->name;
-        $tmpnode->desc = $curele->desc;
-        $tmpnode->comment = $curele->comment;
+
+        copy_meta($curele, $tmpnode);
 
         return $tmpnode;
     }
