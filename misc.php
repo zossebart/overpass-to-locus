@@ -20,7 +20,7 @@ function get_timeout_with_margin($timeout, $reroute)
 
 function strip_comments($query)
 {
-	$ret = preg_replace('/\/\*.*\*\//', '', $query);
+	$ret = preg_replace('/\/\*(\s|.)*\*\//', '', $query);
 
 	if($ret != NULL)
 		$ret2 = preg_replace('/\/\/.*$/m', '', $ret);
