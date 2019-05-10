@@ -412,7 +412,7 @@ function reroute($rel, $broute, $editlink)
     return $returnstr;
 }
 
-function outputgpx ($nodes, $ways, $rels, $url, $mime, $zipit, $broute, $editlink)
+function outputgpx ($nodes, $ways, $rels, $url, $mime, $zipit, $broute, $editlink, $waytopoi)
 {
     $strgpxheader = "<?xml version=\"1.0\" encoding=\"utf-8\" standalone=\"yes\"?>
         <gpx version=\"1.1\" creator=\"op2gpx\"
@@ -452,8 +452,25 @@ function outputgpx ($nodes, $ways, $rels, $url, $mime, $zipit, $broute, $editlin
 
     if($zipit)
         $strdata = "";
-    foreach($ways as $way)
-        $strdata .= outputtrack($way, 1, $editlink);
+    foreach($ways as $way){
+        if ($waytopoi != ""){
+            if($waytopoi < 0)
+                $frac = 0;
+            else if($waytopoi > 100)
+                $frac = 1;
+            else
+                $frac = ($waytopoi / 100);
+
+            generate_wayseg_point($way->wayseg[0], $frac, $newnode);
+
+            $newnode->type = "waycenter";
+            copy_meta($way, $newnode);
+
+            $nodes[] = $newnode;
+        }
+        else
+            $strdata .= outputtrack($way, 1, $editlink);
+    }
     if($zipit && $strdata != "")
         $zip->addFromString('op2gpx-ways.gpx', $strgpxheader.$strdata.$strgpxfooter);
 
@@ -609,7 +626,7 @@ function getnodes(&$jsoninput, $naming, &$nodesoutput)
 // scans $jsoninput for ways and adds them to $waysoutput
 // also removes them from $jsoninput for speedup of later scans
 // also increments counter of "consumed" way-nodes in $nodesinput
-function getways(&$jsoninput, $naming, $style, $waytopoi, &$nodesinput, &$waysoutput)
+function getways(&$jsoninput, $naming, $style, &$nodesinput, &$waysoutput)
 {
     $consumedresponseways = array();
 
@@ -665,23 +682,7 @@ function getways(&$jsoninput, $naming, $style, $waytopoi, &$nodesinput, &$waysou
             if (property_exists($ele, 'center'))
                 $nodesinput[] = get_center_node($ele, $curway, "waycenter");
 
-            if ($waytopoi != ""){
-                if($waytopoi < 0)
-                    $frac = 0;
-                else if($waytopoi > 100)
-                    $frac = 1;
-                else
-                    $frac = ($waytopoi / 100);
-
-                generate_wayseg_point($curway->wayseg[0], $frac, $newnode);
-                $newnode->type = "waycenter";
-
-                copy_meta($curway, $newnode);
-
-                $nodesinput[] = $newnode;
-            }
-            else
-                $waysoutput[] = $curway; //add to ways array
+            $waysoutput[] = $curway; //add to ways array
 
             //remove it from response afterwards
             $consumedresponseways [] = $reskey;            
@@ -1072,14 +1073,14 @@ else
         getnodes($json, $naming, $allnodes);
 
         //2. get all ways of the response (consumes nodes from $allnodes)    
-        getways($json, $naming, $style, $waytopoi, $allnodes, $allways);
+        getways($json, $naming, $style, $allnodes, $allways);
 
         //3. get all relations of the response 
         //(consumes nodes from $allnodes and ways from $allways)    
         getrels($json, $naming, $shpmode, $broute, $allnodes, $allways, $allrels);
 
         //now construct the gpx output and return it
-        outputgpx ($allnodes, $allways, $allrels, $url, $mime, $zipit, $broute, $editlink);
+        outputgpx ($allnodes, $allways, $allrels, $url, $mime, $zipit, $broute, $editlink, $waytopoi);
     }
 }
 
