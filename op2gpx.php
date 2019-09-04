@@ -103,6 +103,7 @@ class way {
     public $gaps = 0;
     public $style;
     public $nodecount = 0;
+    public $withtime = 0;
 }
 
 //relations
@@ -267,7 +268,7 @@ function outputwpt($node, $ignoreusage, $editlink)
     return $returnstr;
 }
 
-function outputtrack($way, $withtime, $editlink)
+function outputtrack($way, $editlink)
 {
     $returnstr = "";
     $waypts = array();
@@ -278,7 +279,7 @@ function outputtrack($way, $withtime, $editlink)
     if($way->nodecount < 2)
         return;
 
-    if($withtime != "")
+    if($way->withtime != "")
         $time_utc = new DateTime(null, new DateTimeZone("UTC"));
 
     //new track
@@ -308,7 +309,7 @@ function outputtrack($way, $withtime, $editlink)
                 //error_log("output a way-node");
                 $returnstr.="\t\t<trkpt lat=\"$node->lat\" lon=\"$node->lon\"><ele>0.00</ele>";
 
-                if($withtime != ""){
+                if($way->withtime != ""){
                     $secperm = $GLOBALS["secperm"];
                     if($nodecount++ > 0){
                         $dist = haversineGreatCircleDistance($oldnode, $node);
@@ -344,10 +345,10 @@ function outputtrack($way, $withtime, $editlink)
     return $returnstr;
  }
 
-function outputrel($rel, $withtime, $editlink)
+function outputrel($rel, $editlink)
 {
     $returnstr = "";
-    $returnstr .= outputtrack($rel->way, $withtime, $editlink);
+    $returnstr .= outputtrack($rel->way, $editlink);
 
     foreach($rel->pois as $poi){
         $returnstr .= outputwpt($poi, 0, $editlink);
@@ -406,7 +407,7 @@ function reroute($rel, $broute, $editlink)
             $returnstr = preg_replace("/\<trk\>[.\s]*\<name\>.*\<\/name\>/m", "<trk>\t".getgpxtags($rel->way, $editlink), $returnstr);
         }
         else
-            $returnstr = outputrel($rel, 1);
+            $returnstr = outputrel($rel, $editlink);
     }
 
     return $returnstr;
@@ -442,7 +443,7 @@ function outputgpx ($nodes, $ways, $rels, $url, $mime, $zipit, $broute, $editlin
         if($rel->way->gaps == 0 && $broute != "")
             $strdata = reroute($rel, $broute, $editlink);
         else
-            $strdata .= outputrel($rel, 1, $editlink);    
+            $strdata .= outputrel($rel, $editlink);    
   
         if($zipit && $strdata != ""){
             $zip->addFromString('op2gpx-rel'.$rel->id.'.gpx', $strgpxheader.$strdata.$strgpxfooter);
@@ -469,7 +470,7 @@ function outputgpx ($nodes, $ways, $rels, $url, $mime, $zipit, $broute, $editlin
             $nodes[] = $newnode;
         }
         else
-            $strdata .= outputtrack($way, 1, $editlink);
+            $strdata .= outputtrack($way, $editlink);
     }
     if($zipit && $strdata != "")
         $zip->addFromString('op2gpx-ways.gpx', $strgpxheader.$strdata.$strgpxfooter);
@@ -952,6 +953,8 @@ function insertwaysegstartpoints($inputway)
         $outputway->wayseg[$ws]->nodes[0]->type = "wpt";
         $outputway->wayseg[$ws]->nodes[0]->name = "shapingpoint";                        
     }
+
+    $outputway->withtime = 1;    
     return $outputway;
 }
 
@@ -962,6 +965,7 @@ function insertwaysegmidpoints($inputway)
     foreach($inputway->wayseg as $segment)
         $segment = insertwaysegpoint($segment, 0.5);
 
+    $outputway->withtime = 1;
     return $outputway;
 }
 
@@ -977,6 +981,8 @@ function insertwaysegsemistartpoints($inputway)
 
         $segment = insertwaysegpoint($segment, $frac);
     }
+
+    $outputway->withtime = 1;
     return $outputway;
 }
 
