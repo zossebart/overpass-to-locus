@@ -3,8 +3,8 @@
 $scriptver = "vX.x.X";
 $info = "converted by op2gpx ".$scriptver;
 
-$trackspeed = 5; //in Km/h
-$secperm = 3.6/$trackspeed;
+//$trackspeed = 5; //in Km/h
+//$secperm = 3.6/$trackspeed;
 
 $brouter_server = "http://localhost:8080";
 
@@ -268,7 +268,7 @@ function outputwpt($node, $ignoreusage, $editlink)
     return $returnstr;
 }
 
-function outputtrack($way, $editlink)
+function outputtrack($way, $editlink, $trackspeed)
 {
     $returnstr = "";
     $waypts = array();
@@ -279,8 +279,10 @@ function outputtrack($way, $editlink)
     if($way->nodecount < 2)
         return;
 
-    if($way->withtime != "")
+    if($trackspeed != ""){
         $time_utc = new DateTime(null, new DateTimeZone("UTC"));
+        $secperm = 3.6 / $trackspeed;
+    }
 
     //new track
     $returnstr .= "<trk>\t".getgpxtags($way, $editlink);
@@ -309,8 +311,7 @@ function outputtrack($way, $editlink)
                 //error_log("output a way-node");
                 $returnstr.="\t\t<trkpt lat=\"$node->lat\" lon=\"$node->lon\"><ele>0.00</ele>";
 
-                if($way->withtime != ""){
-                    $secperm = $GLOBALS["secperm"];
+                if($trackspeed != ""){
                     if($nodecount++ > 0){
                         $dist = haversineGreatCircleDistance($oldnode, $node);
                         $timediff = floor($dist * $secperm);
@@ -318,15 +319,15 @@ function outputtrack($way, $editlink)
                     }
 
                     $returnstr.="<time>".$time_utc->format(DateTime::ISO8601)."</time>";     
-
-                    if($node->type == "wpt"){
-                        $wpt = clone($node);
-                        $wpt->time = $time_utc->format(DateTime::ISO8601);
-                        $waypts[] = $wpt;
-                    } 
-
                     $oldnode = $node;                    
                 }
+
+                if($node->type == "wpt"){
+                    $wpt = clone($node);
+//                    if($trackspeed != "")
+//                        $wpt->time = $time_utc->format(DateTime::ISO8601);
+                    $waypts[] = $wpt;
+                } 
 
                 $returnstr.="</trkpt>\n";
             }
@@ -345,10 +346,10 @@ function outputtrack($way, $editlink)
     return $returnstr;
  }
 
-function outputrel($rel, $editlink)
+function outputrel($rel, $editlink, $trackspeed)
 {
     $returnstr = "";
-    $returnstr .= outputtrack($rel->way, $editlink);
+    $returnstr .= outputtrack($rel->way, $editlink, $trackspeed);
 
     foreach($rel->pois as $poi){
         $returnstr .= outputwpt($poi, 0, $editlink);
@@ -374,7 +375,7 @@ function outputhttpheader($mime)
     header('Pragma: private');
 }
 
-function reroute($rel, $broute, $editlink)
+function reroute($rel, $broute, $editlink, $trackspeed)
 {
     $lonlats = "";
 
@@ -407,13 +408,13 @@ function reroute($rel, $broute, $editlink)
             $returnstr = preg_replace("/\<trk\>[.\s]*\<name\>.*\<\/name\>/m", "<trk>\t".getgpxtags($rel->way, $editlink), $returnstr);
         }
         else
-            $returnstr = outputrel($rel, $editlink);
+            $returnstr = outputrel($rel, $editlink, $trackspeed);
     }
 
     return $returnstr;
 }
 
-function outputgpx ($nodes, $ways, $rels, $url, $mime, $zipit, $broute, $editlink, $waytopoi)
+function outputgpx ($nodes, $ways, $rels, $url, $mime, $zipit, $broute, $editlink, $waytopoi, $trackspeed)
 {
     $strgpxheader = "<?xml version=\"1.0\" encoding=\"utf-8\" standalone=\"yes\"?>
         <gpx version=\"1.1\" creator=\"op2gpx\"
@@ -441,9 +442,9 @@ function outputgpx ($nodes, $ways, $rels, $url, $mime, $zipit, $broute, $editlin
 
     foreach($rels as $rel){
         if($rel->way->gaps == 0 && $broute != "")
-            $strdata = reroute($rel, $broute, $editlink);
+            $strdata = reroute($rel, $broute, $editlink, $trackspeed);
         else
-            $strdata .= outputrel($rel, $editlink);    
+            $strdata .= outputrel($rel, $editlink, $trackspeed);    
   
         if($zipit && $strdata != ""){
             $zip->addFromString('op2gpx-rel'.$rel->id.'.gpx', $strgpxheader.$strdata.$strgpxfooter);
@@ -470,7 +471,7 @@ function outputgpx ($nodes, $ways, $rels, $url, $mime, $zipit, $broute, $editlin
             $nodes[] = $newnode;
         }
         else
-            $strdata .= outputtrack($way, $editlink);
+            $strdata .= outputtrack($way, $editlink, $trackspeed);
     }
     if($zipit && $strdata != "")
         $zip->addFromString('op2gpx-ways.gpx', $strgpxheader.$strdata.$strgpxfooter);
@@ -954,7 +955,7 @@ function insertwaysegstartpoints($inputway)
         $outputway->wayseg[$ws]->nodes[0]->name = "shapingpoint";                        
     }
 
-    $outputway->withtime = 1;    
+    //$outputway->withtime = 1;    
     return $outputway;
 }
 
@@ -965,7 +966,7 @@ function insertwaysegmidpoints($inputway)
     foreach($inputway->wayseg as $segment)
         $segment = insertwaysegpoint($segment, 0.5);
 
-    $outputway->withtime = 1;
+    //$outputway->withtime = 1;
     return $outputway;
 }
 
@@ -982,7 +983,7 @@ function insertwaysegsemistartpoints($inputway)
         $segment = insertwaysegpoint($segment, $frac);
     }
 
-    $outputway->withtime = 1;
+    //$outputway->withtime = 1;
     return $outputway;
 }
 
@@ -1025,6 +1026,7 @@ if(isset($_GET['reroute']))$broute = $_GET['reroute']; else $broute="";
 if(isset($_GET['editlink']))$editlink = $_GET['editlink']; else $editlink="";
 if(isset($_GET['style']))$style = $_GET['style']; else $style="";
 if(isset($_GET['waytopoi']))$waytopoi = $_GET['waytopoi']; else $waytopoi="";
+if(isset($_GET['trackspeed']))$trackspeed = $_GET['trackspeed']; else $trackspeed="";
 
 $query = urldecode($query);
 error_log($query);
@@ -1086,7 +1088,7 @@ else
         getrels($json, $naming, $shpmode, $broute, $allnodes, $allways, $allrels);
 
         //now construct the gpx output and return it
-        outputgpx ($allnodes, $allways, $allrels, $url, $mime, $zipit, $broute, $editlink, $waytopoi);
+        outputgpx ($allnodes, $allways, $allrels, $url, $mime, $zipit, $broute, $editlink, $waytopoi, $trackspeed);
     }
 }
 
