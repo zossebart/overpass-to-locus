@@ -959,12 +959,18 @@ function insertwaysegstartpoints($inputway)
 
 function insertwaysegmidpoints($inputway)
 {
+    return insertnumwaysegpoints($inputway, 1);
+}
+
+function insertnumwaysegpoints($inputway, $numpoints)
+{
     $outputway = $inputway;
 
-    foreach($inputway->wayseg as $segment)
-        $segment = insertwaysegpoint($segment, 0.5);
+    if($numpoints > 0)
+        foreach($inputway->wayseg as $segment)
+            for($i = 0; $i < $numpoints; $i++)
+                $segment = insertwaysegpoint($segment, ($i + 1) * (1 / ($numpoints + 1)));
 
-    //$outputway->withtime = 1;
     return $outputway;
 }
 
