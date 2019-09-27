@@ -405,13 +405,11 @@ function reroute($rel, $broute, $editlink, $trackspeed)
             //fill in our name, desc and cmt fields
             $rel->way->comment .= "\nrerouted with profile ".$broute;
 
-            $returnstr = preg_replace("/\<trk\>[.\s]*\<name\>.*\<\/name\>/m", "<trk>\t".getgpxtags($rel->way, $editlink), $returnstr);
+            return preg_replace("/\<trk\>[.\s]*\<name\>.*\<\/name\>/m", "<trk>\t".getgpxtags($rel->way, $editlink), $returnstr);
         }
-        else
-            $returnstr = outputrel($rel, $editlink, $trackspeed);
     }
 
-    return $returnstr;
+    return outputrel($rel, $editlink, $trackspeed);
 }
 
 function outputgpx ($nodes, $ways, $rels, $url, $mime, $zipit, $broute, $editlink, $waytopoi, $trackspeed)
