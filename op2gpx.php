@@ -775,11 +775,12 @@ function getrels(&$jsoninput, $naming, $shpmode, $broute, &$nodesinput, &$waysin
                 //insert locus shaping points
                 if($broute == "" && $shpmode & 1)
                     $currel->way = insertwaysegstartpoints($currel->way);                
-                if($broute != "" || $shpmode & 2)
+                if(/*$broute != "" || */$shpmode & 2)
                     $currel->way = insertwaysegmidpoints($currel->way);
                 if($broute != "" || $shpmode & 4)   
                     $currel->way = insertwaysegsemistartpoints($currel->way);
-
+                if($broute != "")
+                    $currel->way = insertnumwaysegpoints($currel->way, 3);
 
                 if($broute != ""){
                     $currel->way->wayseg[0]->nodes[0]->type = "wpt";
