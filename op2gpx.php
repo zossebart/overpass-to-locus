@@ -1032,6 +1032,7 @@ if(isset($_GET['editlink']))$editlink = $_GET['editlink']; else $editlink="";
 if(isset($_GET['style']))$style = $_GET['style']; else $style="";
 if(isset($_GET['waytopoi']))$waytopoi = $_GET['waytopoi']; else $waytopoi="";
 if(isset($_GET['trackspeed']))$trackspeed = $_GET['trackspeed']; else $trackspeed="";
+if(isset($_GET['dbg']))$dbg = $_GET['dbg']; else $dbg=0;
 
 $query = urldecode($query);
 error_log($query);
@@ -1063,7 +1064,10 @@ $default_socket_timeout = ini_get('default_socket_timeout');
 ini_set('default_socket_timeout', $timeout + 5);
 
 //get the response from overpass api
-$response = file_get_contents($url);
+if(!($dbg & 1))
+    $response = file_get_contents($url);
+else
+    $response = "";
 
 ini_set('default_socket_timeout', $default_socket_timeout);
 
@@ -1093,7 +1097,8 @@ else
         getrels($json, $naming, $shpmode, $broute, $allnodes, $allways, $allrels);
 
         //now construct the gpx output and return it
-        outputgpx ($allnodes, $allways, $allrels, $url, $mime, $zipit, $broute, $editlink, $waytopoi, $trackspeed);
+        if(!($dbg & 2))
+            outputgpx ($allnodes, $allways, $allrels, $url, $mime, $zipit, $broute, $editlink, $waytopoi, $trackspeed);
     }
 }
 
