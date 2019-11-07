@@ -6,11 +6,23 @@ $patterns = array();
 $patterns[0] = '(%7B%7Bbbox%7D%7D)';
 $patterns[1] = '(%7B%7Bcenter%7D%7D)';
 
+$directpatterns = array();
+$directpatterns[0] = '(%7B%7Bbbox%7D%7D)';
+
 $replacements = array();
 $replacements[0] = '{screenLatBottom}%2C{screenLonLeft}%2C{screenLatTop}%2C{screenLonRight}';
 $replacements[1] = '{mapLat}%2C{mapLon}';
 
-$locusurl = "locus-actions://http/".$_SERVER['SERVER_NAME'].dirname($_SERVER['SCRIPT_NAME'])."/op2gpx-locus.php";
+$south = $_GET['south'];
+$west = $_GET['west'];
+$north = $_GET['north'];
+$east = $_GET['east'];
+
+$directreplacements = array();
+$directreplacements[0] = $south.'%2C'.$west.'%2C'.$north.'%2C'.$east;
+
+$locusurlstart = "locus-actions://http/".$_SERVER['SERVER_NAME'].dirname($_SERVER['SCRIPT_NAME'])."/op2gpx-locus.php";
+$directurlstart = "http://".$_SERVER['SERVER_NAME'].dirname($_SERVER['SCRIPT_NAME'])."/op2gpx.php";
 
 $input = $_GET['input'];
 $locusaction = $_GET['locusaction'];
@@ -47,19 +59,21 @@ $url = strip_comments($url);
 
 $url = urlencode($url);
 
-$url = preg_replace($patterns, $replacements, $url);
+$locusurl = preg_replace($patterns, $replacements, $url);
+$directurl = preg_replace($directpatterns, $directreplacements, $url);
 
-$url = $locusurl."?query=".$url;
+$locusurl = $locusurlstart."?query=".$locusurl;
+$directurl = $directurlstart."?query=".$directurl;
 
 if($locusaction == "import")
-	$url = $url."&act=import";
-
-if($naming != "")
-	$url = $url."&naming=".$naming;
+	$locusurl = $locusurl."&act=import";
 
 if($tbase == "locus")
-	$url = $url."&timebase={timeUtc}";
-	
+	$locusurl = $locusurl."&timebase={timeUtc}";
+
+if($naming != "")
+	$endurl = "&naming=".$naming;
+
 $shpmode = 0;
 
 if($shpmode1 != "")
@@ -74,23 +88,27 @@ if($shpmode3 != "")
 
 
 if($shpmode != 0)
-	$url = $url."&shpmode=".$shpmode;
+	$endurl = $endurl."&shpmode=".$shpmode;
 
 if($zip == "yes")
-	$url = $url."&zip=yes";
+	$endurl = $endurl."&zip=yes";
 
 if($editlink != "")
-	$url = $url."&editlink=".$editlink;
+	$locusurl = $locusurl."&editlink=".$editlink;
 
 if($style != "")
-	$url = $url."&style=".$style;
+	$endurl = $endurl."&style=".$style;
 
 if($waytopoi != "")
-	$url = $url."&waytopoi=".$waytopoi;
+	$endurl = $endurl."&waytopoi=".$waytopoi;
 
 	//print("&timebase={timeUtc}");
 
-print("locus-url:<br> $url<br><br>");
+$locusurl .= $endurl;
+$directurl .= $endurl;
+
+print("locus-url :<br> $locusurl<br><br>");
+print("direct-url:<br> <a href=$directurl>$directurl</a><br><br>");
 
 print("</body></html>");
 
