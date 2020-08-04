@@ -937,12 +937,17 @@ function insertwaysegpoint($inputwayseg, $fraction)
 {
     $outputwayseg = $inputwayseg;
 
-    $nodecount = generate_wayseg_point($inputwayseg, $fraction, $newnode);
-    if($nodecount != -1){
-        $newnode->type = "wpt";
-        $newnode->name = "shapingpoint";
+//    if(array_key_exists("junction", $inputwayseg->tags) && $inputwayseg->tags->junction == "roundabout")
+//        return $outputwayseg;
+    if(!array_key_exists("junction", $inputwayseg->tags) || $inputwayseg->tags->junction != "roundabout")
+    {
+        $nodecount = generate_wayseg_point($inputwayseg, $fraction, $newnode);
+        if($nodecount != -1){
+            $newnode->type = "wpt";
+            $newnode->name = "shapingpoint";
 
-        array_splice( $outputwayseg->nodes, $nodecount - 1, 0, array($newnode));
+            array_splice( $outputwayseg->nodes, $nodecount - 1, 0, array($newnode));
+        }
     }
 
     return $outputwayseg;
@@ -954,8 +959,11 @@ function insertwaysegstartpoints($inputway)
 
     for($ws=0; $ws < count($inputway->wayseg); $ws++)
     {
-        $outputway->wayseg[$ws]->nodes[0]->type = "wpt";
-        $outputway->wayseg[$ws]->nodes[0]->name = "shapingpoint";                        
+        if(!array_key_exists("junction", $ws->tags) || $ws->tags->junction != "roundabout")
+        {
+            $outputway->wayseg[$ws]->nodes[0]->type = "wpt";
+            $outputway->wayseg[$ws]->nodes[0]->name = "shapingpoint";
+        }
     }
 
     //$outputway->withtime = 1;    
