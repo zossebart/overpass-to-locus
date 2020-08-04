@@ -88,6 +88,7 @@ class node {
 class wayseg {
     public $nodes = array();
     public $length = 0;
+    public $tags = array();
 }
 
 //ways
@@ -681,6 +682,9 @@ function getways(&$jsoninput, $naming, $style, &$nodesinput, &$waysoutput)
             //if there is a center, add it as node
             if (property_exists($ele, 'center'))
                 $nodesinput[] = get_center_node($ele, $curway, "waycenter");
+
+            if(property_exists($ele, 'tags'))
+                $curway->wayseg[0]->tags = clone($ele->tags);
 
             $waysoutput[] = $curway; //add to ways array
 
