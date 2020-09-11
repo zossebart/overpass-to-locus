@@ -826,6 +826,20 @@ function nodes_match($node1, $node2)
         return false;
 }
 
+function node_matches_any($node, $waysegment)
+{
+    foreach($waysegment->nodes as $segnode){
+        if(nodes_match($node, $segnode))
+            return true;
+    }
+    return false;
+}
+
+function wayseg_is_roundabout($seg)
+{
+    return (array_key_exists("junction", $seg->tags) && $seg->tags->junction == "roundabout");
+}
+
 // trys to fix directions of way segments (constructed from a relation)
 // to all go in the same direction
 function fixwaysegs($inputway)
@@ -839,6 +853,8 @@ function fixwaysegs($inputway)
     $fix1 = 0;
     $fix2 = 0;
     $fix3 = 0;
+    $fix4 = 0;
+    $fix5 = 0;
 
     if($numsegs > 1)
     {
@@ -858,6 +874,24 @@ function fixwaysegs($inputway)
                 $fixedsegs++;
                 $fix1++;
             }
+            else if(wayseg_is_roundabout($outputway->wayseg[$i]) && node_matches_any(lastnode($outputway->wayseg[$i-1]), $outputway->wayseg[$i]))
+            {
+                //normal seg and roundabout seg are already continuous, nothing to do!
+                $metaseg_count++;               
+            }
+            else if(wayseg_is_roundabout($outputway->wayseg[$i-1]) && node_matches_any(firstnode($outputway->wayseg[$i]), $outputway->wayseg[$i-1]))
+            {
+                //roundabout seg and normal seg are already continuous, nothing to do!
+                $metaseg_count++;               
+            }
+            else if(wayseg_is_roundabout($outputway->wayseg[$i-1]) && node_matches_any(lastnode($outputway->wayseg[$i]), $outputway->wayseg[$i-1]))
+            {
+                //reverse normal seg after roundabout seg
+                $outputway->wayseg[$i]->nodes = array_reverse($outputway->wayseg[$i]->nodes);
+                $metaseg_count++;
+                $fixedsegs++;
+                $fix4++;
+            }            
             //if at the beginning of a meta-seg, we can still reverse the first seg
             else if($metaseg_count == 2)
             {
@@ -878,6 +912,14 @@ function fixwaysegs($inputway)
                     $fixedsegs+=2;
                     $fix3++;
                 }
+                else if(wayseg_is_roundabout($outputway->wayseg[$i]) && node_matches_any(firstnode($outputway->wayseg[$i-1]), $outputway->wayseg[$i]))
+                {
+                    //reverse the direction of the first seg before roundabout seg
+                    $outputway->wayseg[$i-1]->nodes = array_reverse($outputway->wayseg[$i-1]->nodes);
+                    $metaseg_count++;
+                    $fixedsegs++;
+                    $fix5++;
+                }
             }
             else //we have found a gap -> reset metaseg
             {
@@ -893,7 +935,7 @@ function fixwaysegs($inputway)
     //error_log("fixed ".$fixedsegs."/".$numsegs.", found ".$gaps." gaps");
     
     //add debugging info to resulting way
-    $outputway->comment = $outputway->comment."\nfixed ".$fixedsegs."/".$numsegs."(".$fix1."|".$fix2."|".$fix3.")".", found ".$outputway->gaps." gaps";
+    $outputway->comment = $outputway->comment."\nfixed ".$fixedsegs."/".$numsegs."(".$fix1."|".$fix2."|".$fix3."|".$fix4."|".$fix5.")".", found ".$outputway->gaps." gaps";
 
     //$outputway->name = $outputway->name."-fixed";
 
@@ -939,7 +981,7 @@ function insertwaysegpoint($inputwayseg, $fraction)
 
 //    if(array_key_exists("junction", $inputwayseg->tags) && $inputwayseg->tags->junction == "roundabout")
 //        return $outputwayseg;
-    if(!array_key_exists("junction", $inputwayseg->tags) || $inputwayseg->tags->junction != "roundabout")
+    if(!wayseg_is_roundabout($inputwayseg))
     {
         $nodecount = generate_wayseg_point($inputwayseg, $fraction, $newnode);
         if($nodecount != -1){
@@ -959,7 +1001,7 @@ function insertwaysegstartpoints($inputway)
 
     for($ws=0; $ws < count($inputway->wayseg); $ws++)
     {
-        if(!array_key_exists("junction", $ws->tags) || $ws->tags->junction != "roundabout")
+        if(!wayseg_is_roundabout($inputwayseg))
         {
             $outputway->wayseg[$ws]->nodes[0]->type = "wpt";
             $outputway->wayseg[$ws]->nodes[0]->name = "shapingpoint";
